@@ -26,7 +26,7 @@ class UDPSocket:
         def listen():
             while True:
                 try:
-                    data, addr = self.sock.recvform(BUFFER)
+                    data, addr = self.sock.recvfrom(BUFFER)
                     handler(data.decode('utf-8'), addr)
                 except Exception as e:
                     print(e)
