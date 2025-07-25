@@ -1,5 +1,5 @@
 #for converting dict into proper msg, added also \n\n in the end as said in the rfc
-def build_message(fields: dict) -> str:
+def buildMessage(fields: dict) -> str:
     msg_lines = []
     for key, value in fields.items():
         msg_lines.append(f"{key}: {value}")
@@ -7,7 +7,7 @@ def build_message(fields: dict) -> str:
     return msg
 
 #parses raw string into dict
-def parse_message(msg: str) -> dict:
+def parseMessage(msg: str) -> dict:
     lines = msg.strip().split("\n")
     parsed_msg = {}
 
