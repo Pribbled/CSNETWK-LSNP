@@ -1,6 +1,6 @@
 import socket
 import threading
-from constants import PORT, VERBOSE, BROADCAST_IP
+from constants import PORT, VERBOSE, BROADCAST_IP, BUFFER
 
 class UDPSocket:
     def __init__(self):
