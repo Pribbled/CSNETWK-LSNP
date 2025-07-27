@@ -43,6 +43,8 @@ class Peer:
             print("File not found.")
             return
 
+        print(f"Sending file offer to {to_user} for {file_path}")
+
         file_id = generate_message_id()
         with open(file_path, "rb") as f:
             file_data = f.read()
@@ -155,6 +157,7 @@ class Peer:
                 "MESSAGE_ID": generate_message_id(),
                 "TOKEN": token.create_token(self.user_id, ttl, "chat"),
             }
+            print(f"Sending message to {to_user} at IP {ip_only}")
             self.udp.send(serializer.serialize_message(msg), addr=ip_only)
 
         elif parts[0] == "follow" and len(parts) == 2:

@@ -6,7 +6,7 @@ def main():
     def get_local_ip():
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))  # Google's public DNS
+            s.connect(("8.8.8.8", 80))  # google public dns
             ip = s.getsockname()[0]
             s.close()
             return ip

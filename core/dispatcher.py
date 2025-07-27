@@ -15,6 +15,8 @@ class Dispatcher:
         if msg_type == mt.PROFILE:
             display = msg.get("DISPLAY_NAME", msg.get("USER_ID"))
             status = msg.get("STATUS", "")
+            user_id = msg.get("USER_ID")
+            self.peer.known_peers[user_id] = addr[0]
             print(f"[PROFILE] {display}: {status}")
 
         elif msg_type == mt.POST:
@@ -38,7 +40,9 @@ class Dispatcher:
         elif msg_type == mt.FILE_OFFER:
             from_user = msg.get("FROM")
             filename = msg.get("FILENAME")
+            file_id = msg.get("FILEID")
             print(f"User {from_user.split('@')[0]} is sending you a file: {filename}. Do you accept?")
+            self.peer.pending_file_offers[file_id] = msg
 
         elif msg_type == mt.FILE_CHUNK:
             file_id = msg.get("FILEID")
@@ -46,16 +50,16 @@ class Dispatcher:
             total_chunks = int(msg.get("TOTAL_CHUNKS", -1))
             data = msg.get("DATA", "")
 
-            # Simple temporary in-memory storage
+            # simple temporary in-memory storage
             self.peer.file_chunks.setdefault(file_id, {})[chunk_index] = data
 
-            # If all chunks received
+            # if all chunks received
             if len(self.peer.file_chunks[file_id]) == total_chunks:
                 chunks = [self.peer.file_chunks[file_id][i] for i in range(total_chunks)]
                 file_data = "".join(chunks)  # Base64 str
                 print("File transfer is complete.")
 
-                # Optional: Notify sender
+                # optional: notify sender
                 msg = {
                     "TYPE": mt.FILE_RECEIVED,
                     "FROM": self.peer.user_id,
@@ -67,5 +71,5 @@ class Dispatcher:
                 self.peer.udp.send(serializer.serialize_message(msg), addr=msg["TO"].split("@")[-1])
 
         elif msg_type == mt.FILE_RECEIVED:
-            # Silent acknowledgment
+            # put an ack here
             pass
