@@ -1,6 +1,8 @@
 import threading
 import random
 import time
+import base64
+import os
 from protocol import message_types as mt
 from protocol import serializer, token
 from network.udp_handler import UDPHandler
@@ -17,6 +19,8 @@ class Peer:
         self.dispatcher = Dispatcher(self)
         self.udp = UDPHandler(self.dispatcher.handle)
         self.running = True
+        self.file_chunks = {}
+        self.pending_file_offers = {}  # file_id -> offer message
 
     def broadcast_profile(self):
         msg = {
@@ -33,6 +37,54 @@ class Peer:
             "USER_ID": self.user_id
         }
         self.udp.send(serializer.serialize_message(msg), addr=None, broadcast=True)
+
+    def _send_file(self, to_user, file_path):
+        if not os.path.isfile(file_path):
+            print("File not found.")
+            return
+
+        file_id = generate_message_id()
+        with open(file_path, "rb") as f:
+            file_data = f.read()
+
+        encoded = base64.b64encode(file_data).decode("utf-8")
+        CHUNK_SIZE = 512
+        chunks = [encoded[i:i + CHUNK_SIZE] for i in range(0, len(encoded), CHUNK_SIZE)]
+
+        filename = os.path.basename(file_path)
+        filesize = os.path.getsize(file_path)
+        filetype = "application/octet-stream"
+        ttl = 3600
+
+        # Send FILE_OFFER
+        offer = {
+            "TYPE": mt.FILE_OFFER,
+            "FROM": self.user_id,
+            "TO": to_user,
+            "FILENAME": filename,
+            "FILESIZE": filesize,
+            "FILETYPE": filetype,
+            "FILEID": file_id,
+            "DESCRIPTION": "Sent via LSNP",
+            "TIMESTAMP": int(time.time()),
+            "TOKEN": token.create_token(self.user_id, ttl, "file")
+        }
+        self.udp.send(serializer.serialize_message(offer), addr=to_user.split('@')[-1])
+
+        # Send FILE_CHUNKs
+        for i, chunk in enumerate(chunks):
+            msg = {
+                "TYPE": mt.FILE_CHUNK,
+                "FROM": self.user_id,
+                "TO": to_user,
+                "FILEID": file_id,
+                "CHUNK_INDEX": i,
+                "TOTAL_CHUNKS": len(chunks),
+                "CHUNK_SIZE": CHUNK_SIZE,
+                "TOKEN": token.create_token(self.user_id, ttl, "file"),
+                "DATA": chunk
+            }
+            self.udp.send(serializer.serialize_message(msg), addr=to_user.split('@')[-1])
 
     def run(self):
         self.udp.listen()
@@ -64,7 +116,13 @@ class Peer:
     def _handle_command(self, cmd):
         parts = cmd.split()
         if parts[0] == "help":
-            print("Commands: post <message> | dm <user_id> <message> | follow <user_id> | unfollow <user_id> | exit")
+            print("Commands: post <msg>\n" \
+            "dm <user_id> <msg>\n" \
+            "follow <user_id>\n" \
+            "unfollow <user_id>\n" \
+            "sendfile <user_id>\n"
+            "<file_path>\n" \
+            "exit")
 
         elif parts[0] == "exit":
             self.running = False
@@ -126,6 +184,45 @@ class Peer:
             }
             ip_only = to_user.split('@')[-1]
             self.udp.send(serializer.serialize_message(msg), addr=ip_only)
+
+        elif parts[0] == "sendfile" and len(parts) == 3:
+            to_user = parts[1]
+            file_path = parts[2]
+            self._send_file(to_user, file_path)
+
+        elif parts[0] == "acceptfile" and len(parts) == 2:
+            file_id = parts[1]
+            offer = self.pending_file_offers.get(file_id)
+            if not offer:
+                print("No such file offer.")
+                return
+            msg = {
+                "TYPE": mt.FILE_ACCEPT,
+                "FROM": self.user_id,
+                "TO": offer["FROM"],
+                "FILEID": file_id,
+                "TIMESTAMP": int(time.time())
+            }
+            ip_only = offer["FROM"].split('@')[-1]
+            self.udp.send(serializer.serialize_message(msg), addr=ip_only)
+            print("Accepted the file offer.")
+
+        elif parts[0] == "rejectfile" and len(parts) == 2:
+            file_id = parts[1]
+            offer = self.pending_file_offers.get(file_id)
+            if not offer:
+                print("No such file offer.")
+                return
+            msg = {
+                "TYPE": mt.FILE_REJECT,
+                "FROM": self.user_id,
+                "TO": offer["FROM"],
+                "FILEID": file_id,
+                "TIMESTAMP": int(time.time())
+            }
+            ip_only = offer["FROM"].split('@')[-1]
+            self.udp.send(serializer.serialize_message(msg), addr=ip_only)
+            print("Rejected the file offer.")
 
         else:
             print("Unknown command. Type 'help'.")

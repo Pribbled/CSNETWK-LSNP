@@ -1,13 +1,24 @@
 from core.peer import Peer
+import socket
 import argparse
 
 def main():
-    parser = argparse.ArgumentParser(description="Run LSNP peer.")
-    parser.add_argument("--username", required=True)
-    parser.add_argument("--ip", required=True)
-    args = parser.parse_args()
+    def get_local_ip():
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))  # Google's public DNS
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return "127.0.0.1"  # fallback
 
-    peer = Peer(args.username, args.ip)
+    username = input("Enter your username (e.g., alice): ").strip()
+    ip_address = get_local_ip()
+    user_id = f"{username}@{ip_address}"
+    print(f"Detected local IP: {ip_address}")
+
+    peer = Peer(username, ip_address)
     peer.run()
 
 if __name__ == "__main__":
