@@ -55,6 +55,7 @@ class Dispatcher:
 
             # if all chunks received
             if len(self.peer.file_chunks[file_id]) == total_chunks:
+                print(f"[DEBUG] Received file chunk {chunk_index+1}/{total_chunks} for file {file_id}")
                 chunks = [self.peer.file_chunks[file_id][i] for i in range(total_chunks)]
                 file_data = "".join(chunks)  # Base64 str
                 print("File transfer is complete.")
