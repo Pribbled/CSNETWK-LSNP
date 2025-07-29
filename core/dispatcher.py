@@ -1,5 +1,6 @@
 from protocol import serializer
 from protocol import message_types as mt
+from protocol import file_handling as file_h
 
 class Dispatcher:
     def __init__(self, peer):
@@ -39,10 +40,60 @@ class Dispatcher:
 
         elif msg_type == mt.FILE_OFFER:
             from_user = msg.get("FROM")
+            to_user = msg.get("TO")
             filename = msg.get("FILENAME")
             file_id = msg.get("FILEID")
-            print(f"User {from_user.split('@')[0]} is sending you a file: {filename}. Do you accept?")
+
+            if to_user != self.peer.user_id:
+                return
+
             self.peer.pending_file_offers[file_id] = msg
+            print(f"User {from_user.split('@')[0]} is sending you a file: {filename}. Do you accept?")
+            self.peer.awaiting_file_offer = file_id
+
+            if self.awaiting_file_offer:
+                response = line.strip().lower()
+                fileid = self.awaiting_file_offer
+                offer = self.pending_file_offers.get(fileid)
+
+                if not offer:
+                    print("No matching file offer found.")
+                    self.awaiting_file_offer = None
+                    return
+
+                from_user = offer["FROM"]
+
+                if response in ("yes", "y"):
+                    self.send_message({
+                        "TYPE": "FILE_ACCEPT",
+                        "FROM": self.user_id,
+                        "TO": from_user,
+                        "FILEID": fileid,
+                    }, addr=from_user.split("@")[1])
+                    file_h.accept_file(self, file_id)
+                    print(f"Accepted file: {offer['FILENAME']}")
+                    self.peer.accepted_file_ids.add(fileid)
+                else:
+                    self.send_message({
+                        "TYPE": "FILE_REJECT",
+                        "FROM": self.user_id,
+                        "TO": from_user,
+                        "FILEID": fileid,
+                    }, addr=from_user.split("@")[1])
+                    file_h.reject_file(self, file_id)
+                    print(f"Rejected file: {offer['FILENAME']}")
+                    self.peer.rejected_file_ids.add(fileid)
+
+                self.awaiting_file_offer = None
+                return
+
+        # elif msg_type == mt.FILE_ACCEPT
+
+        elif msg_type == "FILE_REJECT":
+            fileid = msg.get["FILEID"]
+            to_user = msg.get["TO"]
+            if to_user == self.peer.user_id:
+                print(f"Your file was rejected by {msg.get['FROM']}.")
 
         elif msg_type == mt.FILE_CHUNK:
             file_id = msg.get("FILEID")

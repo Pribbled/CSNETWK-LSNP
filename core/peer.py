@@ -102,7 +102,7 @@ class Peer:
     def _auto_ping(self):
         while self.running:
             self.send_ping()
-            time.sleep(10)
+            time.sleep(120)
 
     def _input_loop(self):
         while self.running:
@@ -183,7 +183,7 @@ class Peer:
                 "TO": to_user,
                 "MESSAGE_ID": generate_message_id(),
                 "TIMESTAMP": int(time.time()),
-                "TOKEN": token.create_token(self.user_id, ttl, "follow"),
+                "TOKEN": token.create_token(self.user_id, ttl, "unfollow"),
             }
             ip_only = to_user.split('@')[-1]
             self.udp.send(serializer.serialize_message(msg), addr=ip_only)
@@ -229,4 +229,4 @@ class Peer:
 
         else:
             print("Unknown command. Type 'help'.")
-
+            

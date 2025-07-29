@@ -30,7 +30,6 @@ def create_socket():
     sock.bind(('', PORT))  # Bind to all available interfaces
     return sock
 
-
 class UDPHandler:
     def __init__(self, on_receive):
         self.sock = create_socket()
@@ -59,7 +58,6 @@ class UDPHandler:
                     message = data.decode('utf-8')
                     print(f"[UDP] Received from {addr}:\n{message}\n")
                     self.on_receive(message, addr)
-                    time.sleep(30)
                 except Exception as e:
                     print(f"[UDP] Receive error: {e}")
         threading.Thread(target=loop, daemon=True).start()
