@@ -1,5 +1,5 @@
 import socket
-from constants import PORT, BUFFER
+from constants import PORT, BUFFER, RETRY_DELAY, RETRY_LIMIT
 
 board = [" "] * 9
 acknowledged = set()

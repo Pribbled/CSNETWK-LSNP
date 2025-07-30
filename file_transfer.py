@@ -25,7 +25,8 @@ def sendFileOffer(send_id, rcv_id, path, peer):
         "TIMESTAMP": int(time.time()),
         "TOKEN": token
     })
-
+    print(f"Sending file offer to {rcv_id.split('@')[1]}")
+    print("Message: \n " + msg)
     peer.sendToOne(msg, rcv_id.split("@")[1])
     return file_id
 
@@ -50,7 +51,7 @@ def sendFileChunks(send_id, rcv_id, path, file_id, peer, chunk_size = 512):
             "DATA": chunk,
             "TOKEN": token
         })
-        peer.sendToOne(msg, rcv_id.split("@")[1])
+        peer.sendToOne(msg, rcv_id.split('@')[1])
         time.sleep(0.05)
 
 #prompts the user to accept or reject the file offer
