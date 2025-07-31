@@ -15,6 +15,7 @@ from handlers import (
     follow,
 )
 
+global running
 import sys
 
 running = True
@@ -70,7 +71,7 @@ def dispatch_message(msg: dict, addr: tuple, sock):
     
 def receive_loop():
     sock = create_socket()
-    while running:
+    while True:
         try:
             data, addr = receive_udp(sock)
             msg = parse_message(data)
@@ -81,12 +82,10 @@ def receive_loop():
 
 def cli_loop():
     print("🎛️  LSNP CLI Ready. Type 'help' for commands.")
-    global running
-    while running:
+    while True:
         try:
             cmd = input("LSNP> ").strip()
             if cmd == "exit":
-                running = False
                 break
             elif cmd == "help":
                 print("""

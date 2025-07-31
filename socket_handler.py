@@ -19,6 +19,7 @@ def send_udp(message: str, ip: str, port: int = PORT):
 def receive_udp(sock: socket.socket) -> tuple[str, tuple[str, int]]:
     """Receives a UDP message and returns decoded text and sender address."""
     data, addr = sock.recvfrom(BUFFER_SIZE)
+    print (data.decode('utf-8'), addr)
     return data.decode('utf-8'), addr
 
 def send_unicast(message: str, ip: str, port: int = None):
