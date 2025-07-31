@@ -44,13 +44,13 @@ def handle_message(raw_msg, addr):
             return
         content = msg.get("CONTENT", "")
         received_posts.append((sender, content))
-        print(f"📝 {sender}: {content}")
+        print(f"{sender}: {content}")
 
     elif msg_type == "DM":
         if not isTokenValid(token, "DM", revoked_tokens):
             print(f"[WARN] Invalid token in DM from {msg.get('FROM')}. Ignored.")
             return
-        print(f"💬 DM from {msg.get('FROM')} → {msg.get('TO')}: {msg.get('CONTENT')}")
+        print(f"DM from {msg.get('FROM')} → {msg.get('TO')}: {msg.get('CONTENT')}")
     
     elif msg_type == "FILE_OFFER":
         handleFileOffer(msg)
