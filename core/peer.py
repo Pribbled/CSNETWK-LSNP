@@ -102,7 +102,7 @@ class Peer:
     def _auto_ping(self):
         while self.running:
             self.send_ping()
-            time.sleep(120)
+            time.sleep(300)
 
     def _input_loop(self):
         while self.running:

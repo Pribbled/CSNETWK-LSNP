@@ -1,6 +1,7 @@
 from protocol import serializer
 from protocol import message_types as mt
 from protocol import file_handling as file_h
+from datetime import datetime
 
 class Dispatcher:
     def __init__(self, peer):
@@ -69,6 +70,7 @@ class Dispatcher:
                         "FROM": self.user_id,
                         "TO": from_user,
                         "FILEID": fileid,
+                        "TIMESTAMP": int(datetime.now().timestamp())
                     }, addr=from_user.split("@")[1])
                     file_h.accept_file(self, file_id)
                     print(f"Accepted file: {offer['FILENAME']}")
@@ -118,7 +120,7 @@ class Dispatcher:
                     "TO": msg.get("FROM"),
                     "FILEID": file_id,
                     "STATUS": "COMPLETE",
-                    "TIMESTAMP": int(time.time())
+                    "TIMESTAMP": int(datetime.now().timestamp())
                 }
                 self.peer.udp.send(serializer.serialize_message(msg), addr=msg["TO"].split("@")[-1])
 
