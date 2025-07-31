@@ -1,27 +1,27 @@
 from message import build_message
 from socket_handler import send_unicast
-from utils import generate_message_id, current_unix_timestamp
-from state import peers, tokens, revoked_tokens, dm_history
+from utils import generate_message_id, current_unix_timestamp, generate_token
+from state import peers, tokens, revoked_tokens, dm_history, local_profile
 import config
+
 
 # ========== Receive ==========
 def handle(msg: dict, addr: tuple):
     if msg.get("TYPE", "").upper() != "DM":
         return
 
-    required = ["ID", "TIME", "USER", "TO", "CONTENT", "TOKEN"]
+    required = ["TYPE", "FROM", "TO", "CONTENT", "TIMESTAMP", "MESSAGE_ID", "TOKEN"]
     if not all(k in msg for k in required):
         if config.VERBOSE:
             print("⚠️  Malformed DM")
         return
 
     recipient = msg["TO"]
-    if recipient != config.USER_ID:
+    if recipient != local_profile["USER_ID"]:
         if config.VERBOSE:
-            print(f"📩 DM not intended for this user ({recipient} != {config.USER_ID})")
+            print(f"📩 DM not intended for this user ({recipient} != {local_profile['USER_ID']})")
         return
 
-    # Validate token
     token = msg["TOKEN"]
     if not token or token in revoked_tokens:
         if config.VERBOSE:
@@ -35,16 +35,23 @@ def handle(msg: dict, addr: tuple):
                 print("❌ Rejected DM: token expired.")
             return
 
-    sender = msg["USER"]
+    sender = msg["FROM"]
     content = msg["CONTENT"]
 
-    print(f"\n💬 DM from {sender}: {content}")
+    display_name = peers.get(sender, {}).get("NAME", sender)
+
+    if config.VERBOSE:
+        print(f"\n💬 DM from {sender} to {recipient}: {content}")
+    else:
+        print(f"{display_name}: {content}")
+
     dm_history.append({
         "FROM": sender,
         "TO": recipient,
         "CONTENT": content,
-        "TIME": msg["TIME"]
+        "TIMESTAMP": msg["TIMESTAMP"]
     })
+
 
 # ========== CLI ==========
 def cli_send():
@@ -58,20 +65,23 @@ def cli_send():
 
     to_user = input("Recipient USER ID: ").strip()
     content = input("Message content: ").strip()
-    from_user = input("Your USER ID: ").strip()
-    token = input("Token: ").strip()
 
     if to_user not in peers:
         print("❌ Unknown recipient.")
         return
 
+    from_user = local_profile["USER_ID"]
+    timestamp = current_unix_timestamp()
+    ttl = 3600
+    token = generate_token(from_user, timestamp, ttl, "chat")
+
     fields = {
         "TYPE": "DM",
-        "ID": generate_message_id(),
-        "TIME": str(current_unix_timestamp()),
-        "USER": from_user,
+        "FROM": from_user,
         "TO": to_user,
         "CONTENT": content,
+        "TIMESTAMP": str(timestamp),
+        "MESSAGE_ID": generate_message_id(),
         "TOKEN": token
     }
 

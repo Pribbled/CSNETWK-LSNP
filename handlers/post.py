@@ -1,128 +1,176 @@
 from message import build_message
 from socket_handler import send_udp
-from utils import generate_message_id, current_unix_timestamp
-from state import posts
-from config import BROADCAST_ADDRESS
-import config
+from utils import (
+    generate_message_id,
+    current_unix_timestamp,
+    generate_token,
+)
+from state import posts, local_profile, follow_map, liked_posts
+from config import BROADCAST_ADDRESS, VERBOSE
+
 
 def cli_send():
-    print("Send a post type: [1] POST  [2] REPOST  [3] LIKE")
-    choice = input("Choose type (1/2/3): ").strip()
+    print("Send a post or like: [1] POST  [2] LIKE / UNLIKE")
+    choice = input("Choose type (1/2): ").strip()
 
     if choice == "1":
         send_post()
     elif choice == "2":
-        send_repost()
-    elif choice == "3":
         send_like()
     else:
         print("❌ Invalid choice.")
 
+
 def send_post():
-    user = input("Your USER ID: ").strip()
     content = input("Post content: ").strip()
+    ttl = input("TTL in seconds (default 3600): ").strip()
+    ttl = int(ttl) if ttl.isdigit() else 3600
 
-    fields = {
+    user_id = local_profile["USER_ID"]
+    timestamp = current_unix_timestamp()
+    token = generate_token(user_id, timestamp, ttl, "broadcast")
+
+    message = {
         "TYPE": "POST",
-        "ID": generate_message_id(),
-        "TIME": str(current_unix_timestamp()),
-        "USER": user,
-        "CONTENT": content
+        "USER_ID": user_id,
+        "CONTENT": content,
+        "TTL": str(ttl),
+        "TIMESTAMP": str(timestamp),
+        "MESSAGE_ID": generate_message_id(),
+        "TOKEN": token,
     }
 
-    msg = build_message(fields)
-    send_udp(msg, BROADCAST_ADDRESS)
-    print("✅ POST sent.")
+    posts[timestamp] = message
+    send_udp(build_message(message), BROADCAST_ADDRESS)
+    print("✅ POST broadcast sent.")
 
-def send_repost():
-    user = input("Your USER ID: ").strip()
-    post_id = input("Original POST_ID to repost: ").strip()
-
-    if post_id not in posts:
-        print("❌ That post ID is not known locally.")
-        return
-
-    fields = {
-        "TYPE": "REPOST",
-        "ID": generate_message_id(),
-        "TIME": str(current_unix_timestamp()),
-        "USER": user,
-        "POST_ID": post_id
-    }
-
-    msg = build_message(fields)
-    send_udp(msg, BROADCAST_ADDRESS)
-    print("🔁 REPOST sent.")
 
 def send_like():
-    user = input("Your USER ID: ").strip()
-    post_id = input("POST_ID to like: ").strip()
+    post_timestamp = input("Enter TIMESTAMP of post to like/unlike: ").strip()
+    action = input("Action [LIKE/UNLIKE]: ").strip().upper()
 
-    if post_id not in posts:
-        print("❌ That post ID is not known locally.")
+    if action not in ["LIKE", "UNLIKE"]:
+        print("❌ Invalid action.")
         return
 
-    fields = {
+    try:
+        post_timestamp = int(post_timestamp)
+    except ValueError:
+        print("❌ Invalid TIMESTAMP.")
+        return
+
+    post = posts.get(post_timestamp)
+    if not post:
+        print("❌ No post found with that TIMESTAMP.")
+        return
+
+    target_user = post["USER_ID"]
+    sender = local_profile["USER_ID"]
+    timestamp = current_unix_timestamp()
+    ttl = 3600
+    token = generate_token(sender, timestamp, ttl, "broadcast")
+
+    # Avoid duplicate likes/unlikes
+    if action == "LIKE" and post_timestamp in liked_posts:
+        print("⚠️ Already liked.")
+        return
+    elif action == "UNLIKE" and post_timestamp not in liked_posts:
+        print("⚠️ Cannot unlike a post that was not liked.")
+        return
+
+    if action == "LIKE":
+        liked_posts.add(post_timestamp)
+    else:
+        liked_posts.discard(post_timestamp)
+
+    message = {
         "TYPE": "LIKE",
-        "ID": generate_message_id(),
-        "TIME": str(current_unix_timestamp()),
-        "USER": user,
-        "POST_ID": post_id
+        "FROM": sender,
+        "TO": target_user,
+        "POST_TIMESTAMP": str(post_timestamp),
+        "ACTION": action,
+        "TIMESTAMP": str(timestamp),
+        "TOKEN": token,
     }
 
-    msg = build_message(fields)
-    send_udp(msg, BROADCAST_ADDRESS)
-    print("❤️ LIKE sent.")
+    send_udp(build_message(message), BROADCAST_ADDRESS)
+    print(f"✅ {action} sent to {target_user}.")
 
 
-# ========== Receive ==========
+# ===================== RECEIVE =====================
+
 def handle(msg: dict, addr: tuple):
     msg_type = msg.get("TYPE", "").upper()
-    if msg_type not in ["POST", "REPOST", "LIKE"]:
-        return
-
     if msg_type == "POST":
-        handle_post(msg, addr)
-    elif msg_type == "REPOST":
-        handle_repost(msg, addr)
+        handle_post(msg)
     elif msg_type == "LIKE":
-        handle_like(msg, addr)
+        handle_like(msg)
 
-def handle_post(msg: dict, addr: tuple):
-    post_id = msg.get("ID")
-    user = msg.get("USER")
+
+def handle_post(msg: dict):
+    user = msg.get("USER_ID")
     content = msg.get("CONTENT")
+    timestamp = msg.get("TIMESTAMP")
 
-    if not post_id or not user or not content:
-        if config.VERBOSE:
-            print("⚠️  Malformed POST")
+    if not user or not content or not timestamp:
+        if VERBOSE:
+            print("⚠️ Malformed POST received.")
         return
 
-    posts[post_id] = msg
+    try:
+        timestamp = int(timestamp)
+    except ValueError:
+        if VERBOSE:
+            print("⚠️ Invalid TIMESTAMP format.")
+        return
 
-    if config.VERBOSE:
+    # if user not in follow_map or local_profile["USER_ID"] not in follow_map[user]:
+    #     if VERBOSE:
+    #         print(f"🚫 Not following {user}. Ignoring POST.")
+    #     return
+
+    posts[timestamp] = msg
+    display = user.split("@")[0]  # Use handle or fallback to user_id
+
+    if VERBOSE:
         print(f"📝 POST from {user}: {content}")
+    else:
+        print(f"{display}: {content}")
 
-def handle_repost(msg: dict, addr: tuple):
-    user = msg.get("USER")
-    original_id = msg.get("POST_ID")
 
-    if not original_id or original_id not in posts:
-        if config.VERBOSE:
-            print("⚠️  Unknown POST_ID for REPOST")
+def handle_like(msg: dict):
+    action = msg.get("ACTION", "").upper()
+    from_user = msg.get("FROM")
+    to_user = msg.get("TO")
+    post_timestamp = msg.get("POST_TIMESTAMP")
+
+    if action not in ["LIKE", "UNLIKE"] or not from_user or not to_user or not post_timestamp:
+        if VERBOSE:
+            print("⚠️ Malformed LIKE/UNLIKE message.")
         return
 
-    original = posts[original_id]
-    print(f"🔁 {user} reposted from {original.get('USER')}: {original.get('CONTENT')}")
-
-def handle_like(msg: dict, addr: tuple):
-    user = msg.get("USER")
-    liked_id = msg.get("POST_ID")
-
-    if not liked_id or liked_id not in posts:
-        if config.VERBOSE:
-            print("⚠️  Unknown POST_ID for LIKE")
+    try:
+        post_timestamp = int(post_timestamp)
+    except ValueError:
+        if VERBOSE:
+            print("⚠️ Invalid POST_TIMESTAMP.")
         return
 
-    original = posts[liked_id]
-    print(f"❤️ {user} liked {original.get('USER')}'s post: {original.get('CONTENT')}")
+    post = posts.get(post_timestamp)
+    if not post:
+        if VERBOSE:
+            print("⚠️ Cannot find post with that timestamp.")
+        return
+
+    post_author = post["USER_ID"]
+    if post_author != to_user:
+        if VERBOSE:
+            print("⚠️ TO field does not match actual post author.")
+        return
+
+    message_preview = post.get("CONTENT", "")[:30] + "..." if len(post.get("CONTENT", "")) > 30 else post.get("CONTENT", "")
+
+    if VERBOSE:
+        print(f"🔔 {from_user} {action.lower()}d post from {to_user} at {post_timestamp}")
+    else:
+        print(f"{from_user.split('@')[0]} {action.lower()}s your post [{message_preview}]")

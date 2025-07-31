@@ -12,14 +12,15 @@ CHUNK_SIZE = 1024  # 1KB
 # ========== Receive ==========
 def handle(msg: dict, addr: tuple):
     msg_type = msg.get("TYPE", "").upper()
+    actual_ip = addr[0]
     if msg_type == "FILE_OFFER":
-        handle_offer(msg, addr)
+        handle_offer(msg, actual_ip)
     elif msg_type == "FILE_ACCEPT":
-        handle_accept(msg, addr)
+        handle_accept(msg, actual_ip)
     elif msg_type == "FILE_REJECT":
-        handle_reject(msg, addr)
+        handle_reject(msg, actual_ip)
     elif msg_type == "FILE_CHUNK":
-        handle_chunk(msg, addr)
+        handle_chunk(msg, actual_ip)
 
 def handle_offer(msg: dict, addr: tuple):
     file_id = msg.get("ID")

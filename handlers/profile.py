@@ -1,7 +1,7 @@
 from message import build_message
 from socket_handler import send_udp
 from utils import generate_message_id, current_unix_timestamp
-from state import peers
+from state import peers, local_profile
 from config import BROADCAST_ADDRESS
 import config
 
@@ -12,72 +12,70 @@ OPTIONAL_AVATAR_FIELDS = ["AVATAR_TYPE", "AVATAR_ENCODING", "AVATAR_DATA"]
 
 # ========== Receive ==========
 def handle(msg: dict, addr: tuple):
-    if msg.get("TYPE", "").upper() != VALID_TYPE:
+    if msg.get("TYPE", "").upper() != "PROFILE":
         return
 
-    user_id = msg.get("USER_ID")
-    name = msg.get("DISPLAY_NAME", "")
-    status = msg.get("STATUS", "")
-    avatar_type = msg.get("AVATAR_TYPE", None)
-    avatar_encoding = msg.get("AVATAR_ENCODING", None)
-    avatar_data = msg.get("AVATAR_DATA", None)
+    ip = addr[0]  # actual sender IP
+    sender_user_id = msg.get("USER_ID", "")
 
-    if not user_id:
+    try:
+        username_part = sender_user_id.split("@")[0]
+    except IndexError:
         if config.VERBOSE:
-            print(f"⚠️  PROFILE missing USER_ID field from {addr}")
+            print("⚠️  Malformed USER_ID in PROFILE.")
         return
 
-    # Store or update peer info
-    peers[user_id] = {
-        "DISPLAY_NAME": name,
-        "STATUS": status,
-        "AVATAR_TYPE": avatar_type,
-        "AVATAR_ENCODING": avatar_encoding,
-        "AVATAR_DATA": avatar_data,
-        "ADDRESS": addr[0],
-        "LAST_SEEN": current_unix_timestamp()
+    reconstructed_user_id = f"{username_part}@{ip}"
+
+    if reconstructed_user_id == local_profile["USER_ID"]:
+        if config.VERBOSE:
+            print("ℹ️  Ignoring self profile broadcast.")
+        return
+
+    # store peer info using reconstructed ID
+    peers[reconstructed_user_id] = {
+        "NAME": msg.get("NAME", ""),
+        "STATUS": msg.get("STATUS", ""),
+        "ADDRESS": ip,
+        "AVATAR_TYPE": msg.get("AVATAR_TYPE", ""),
+        "AVATAR_ENCODING": msg.get("AVATAR_ENCODING", ""),
+        "AVATAR_DATA": msg.get("AVATAR_DATA", ""),
     }
 
-    # Output
     if config.VERBOSE:
-        print(f"\n📥 PROFILE received from {user_id}")
-        print(f"  NAME: {name}")
-        print(f"  STATUS: {status}")
-        if avatar_type and avatar_encoding and avatar_data:
-            print(f"  AVATAR_TYPE: {avatar_type}")
-            print(f"  AVATAR_ENCODING: {avatar_encoding}")
-            print(f"  AVATAR_DATA: (base64 {len(avatar_data)} bytes)")
-    else:
-        print(f"{name}: {status}")
+        print(f"\n📥 PROFILE received from {reconstructed_user_id}")
+        print(f"  NAME: {msg.get('NAME', '')}")
+        print(f"  STATUS: {msg.get('STATUS', '')}")
+        print(f"  AVATAR_TYPE: {msg.get('AVATAR_TYPE', '')}")
+        print(f"  AVATAR_ENCODING: {msg.get('AVATAR_ENCODING', '')}")
+        print(f"  AVATAR_DATA: (base64 {len(msg.get('AVATAR_DATA', ''))} bytes)")
+
 
 # ========== Send ==========
 def cli_send():
-    ip = config.LOCAL_IP if hasattr(config, 'LOCAL_IP') else "0.0.0.0"
-    username = input("Username (for USER_ID): ").strip()
-    user_id = f"{username}@{ip}"
     name = input("Display Name: ").strip()
+    avatar = input("Avatar (emoji): ").strip()
     status = input("Status message: ").strip()
-
-    # Optional avatar inputs
-    avatar_type = input("Avatar MIME type (optional): ").strip()
-    avatar_encoding = input("Avatar encoding (default base64): ").strip() or "base64"
-    avatar_data = input("Avatar image (base64-encoded, optional): ").strip()
+    token = input("Optional token (press enter to skip): ").strip()
 
     fields = {
-        "TYPE": VALID_TYPE,
+        "TYPE": "PROFILE",
         "ID": generate_message_id(),
         "TIME": str(current_unix_timestamp()),
-        "USER_ID": user_id,
+        "USER_ID": local_profile["USER_ID"],
         "DISPLAY_NAME": name,
         "STATUS": status,
+        "TTL": str(config.DEFAULT_TTL),
     }
 
-    if avatar_type:
-        fields["AVATAR_TYPE"] = avatar_type
-    if avatar_encoding:
-        fields["AVATAR_ENCODING"] = avatar_encoding
-    if avatar_data:
-        fields["AVATAR_DATA"] = avatar_data
+    # Optional avatar fields
+    if avatar:
+        fields["AVATAR_TYPE"] = "text/emoji"
+        fields["AVATAR_ENCODING"] = "utf-8"
+        fields["AVATAR_DATA"] = avatar
+
+    if token:
+        fields["TOKEN"] = token
 
     msg = build_message(fields)
     send_udp(msg, BROADCAST_ADDRESS)

@@ -7,6 +7,7 @@ from config import VERBOSE
 from handlers import (
     profile,
     post,
+    ping,
     dm,
     file_transfer,
     group,
@@ -84,6 +85,8 @@ def dispatch_message(msg: dict, addr: tuple, sock):
         post.handle(msg, addr)
     elif msg_type == "DM":
         dm.handle(msg, addr)
+    elif msg_type == "PING":
+        ping.handle(msg, addr)
     elif msg_type.startswith("FILE"):
         file_transfer.handle(msg, addr)
     elif msg_type.startswith("GROUP"):
@@ -141,6 +144,8 @@ Available Commands:
                 post.cli_send()
             elif cmd == "dm":
                 dm.cli_send()
+            elif cmd == "ping":
+                ping.cli_send()
             elif cmd == "file":
                 file_transfer.cli_send()
             elif cmd == "group":
@@ -182,5 +187,14 @@ Available Commands:
             print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
+    from state import local_profile
+    from utils import get_local_ip  # if you modularize this later
+
+    username = input("Enter your LSNP username: ").strip()
+    # local_profile["Name"] = username  # optional, if using as DISPLAY_NAME
+    local_profile["USER_ID"] = f"{username}@{local_profile['LOCAL_IP']}"
+
+    print(f"Logging in as {username}@{local_profile['LOCAL_IP']}\n")
     threading.Thread(target=receive_loop, daemon=True).start()
+    ping.start_auto_ping()
     cli_loop()

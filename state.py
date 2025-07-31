@@ -2,15 +2,17 @@ from collections import defaultdict
 from time import time
 import uuid
 import socket
+from utils import get_local_ip
 # Generate a unique user ID at startup
-USER_ID = str(uuid.uuid4())[:8]  # or use a different scheme if LSNP requires a different format
+# USER_ID = str(uuid.uuid4())[:8]  # or use a different scheme if LSNP requires a different format
 
 # Optional: get local IP for better identification
-LOCAL_IP = socket.gethostbyname(socket.gethostname())
+# LOCAL_IP = socket.gethostbyname(socket.gethostname())
 
 local_profile = {
-    "USER_ID": USER_ID,
-    "LOCAL_IP": LOCAL_IP,
+    "USER_ID": "",
+    "USERNAME": "",
+    "LOCAL_IP": get_local_ip(),
     "Name": "",
     "Handle": "",
     "Bio": "",
@@ -20,6 +22,8 @@ local_profile = {
 # Known peers and profiles
 peers = {}  # USER_ID → {DISPLAY_NAME, STATUS, AVATAR, etc.
 posts = {}  # {POST_ID: message}
+liked_posts = set()  # Store TIMESTAMPs of liked posts
+
 tokens = {}  # {token_string: {"EXPIRES_AT": 1234567890, "SCOPE": "DM,..."}}
 revoked_tokens = set()
 dm_history = []
