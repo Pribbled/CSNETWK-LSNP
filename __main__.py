@@ -46,23 +46,23 @@ def dispatch_message(msg: dict, addr: tuple, sock):
                 continue
 
             if msg_type == "PROFILE":
-                profile.handle_incoming(msg, addr)
+                profile.handle(msg, addr)
             elif msg_type == "POST":
-                post.handle_incoming(msg, addr)
+                post.handle(msg, addr)
             elif msg_type == "DM":
-                dm.handle_incoming(msg, addr)
+                dm.handle(msg, addr)
             elif msg_type.startswith("FILE_"):
-                file_transfer.handle_incoming(msg, addr)
+                file_transfer.handle(msg, addr)
             elif msg_type.startswith("GROUP_"):
-                group.handle_incoming(msg, addr)
+                group.handle(msg, addr)
             elif msg_type.startswith("GAME_"):
-                game.handle_incoming(msg, addr)
+                game.handle(msg, addr)
             elif msg_type == "TOKEN":
-                token.handle_incoming(msg, addr)
+                token.handle(msg, addr)
             elif msg_type == "FOLLOW":
-                follow.handle_incoming(msg, addr)
+                follow.handle(msg, addr)
             elif msg_type == "UNFOLLOW":
-                follow.handle_incoming(msg, addr)
+                follow.handle(msg, addr)
             else:
               if VERBOSE:
                   print(f"⚠️  Unknown message type: {msg_type}")
@@ -74,7 +74,9 @@ def receive_loop():
     while True:
         try:
             data, addr = receive_udp(sock)
+            # print(f"\nRaw Incoming:\n{data}")
             msg = parse_message(data)
+            # print("Parsed Message:\n", msg)
             dispatch_message(msg, addr, sock)
         except Exception as e:
             if VERBOSE:

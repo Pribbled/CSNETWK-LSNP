@@ -4,8 +4,6 @@ from state import group_map, peers
 from utils import generate_message_id, current_unix_timestamp
 from state import config
 
-#TODO: change configs to state user creation
-
 # ========== RECEIVE ==========
 def handle(msg: dict, addr: tuple):
     msg_type = msg.get("TYPE", "").upper()
