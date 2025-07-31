@@ -1,0 +1,120 @@
+import socket
+import time
+import random
+import threading
+from constants import PORT, BUFFER, RETRY_DELAY, RETRY_LIMIT
+
+board = [" "] * 9
+acknowledged = set()
+seen_moves = set()
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind(("", PORT))
+sock.settimeout(1)
+
+def displayBoard():
+    print("\n")
+    for i in range(0, 9, 3):
+        print(" " + " | ".join(board[i:i+3]))
+        if i < 6:
+            print("---|---|---")
+
+def message(msg):
+    data = {}
+    for line in msg.strip().splitlines():
+        if ": " in line:
+            k, v = line.split(": ", 1)
+            data[k.strip()] = v.strip()
+    return data
+
+def send_ack(id, ip):
+    ack = f"TYPE: ACK\nMESSAGE_ID: {id}\nSTATUS: RECEIVED\n\n"
+    sock.sendto(ack.encode(), (ip, PORT))
+
+def send_move(gameid, turn, pos, symbol, my_id, peer_ip):
+    msg_id = f"{random.getrandbits(32):08x}"
+    token = f"{my_id}|{int(time.time())+60}|game"
+    msg = (
+        f"TYPE: TICTACTOE_MOVE\n"
+        f"FROM: {my_id}\n"
+        f"TO: {peer_ip}\n"
+        f"GAMEID: {gameid}\n"
+        f"MESSAGE_ID: {msg_id}\n"
+        f"POSITION: {pos}\n"
+        f"SYMBOL: {symbol}\n"
+        f"TURN: {turn}\n"
+        f"TOKEN: {token}\n\n"
+    )
+
+    for attempt in range(RETRY_LIMIT):
+        sock.sendto(msg.encode(), (peer_ip, PORT))
+        print(f"[SEND] Move {pos} (Turn {turn}) → {peer_ip} [Attempt {attempt + 1}]")
+        time.sleep(RETRY_DELAY)
+        if msg_id in acknowledged:
+            print("[INFO] ACK received.")
+            return
+    print("[WARN] No ACK received, move may be lost.")
+
+def receiver(my_id):
+    while True:
+        try:
+            data, addr = sock.recvfrom(BUFFER)
+            msg = data.decode(errors="ignore")
+            fields = message(msg)
+            ip = addr[0]
+
+            if fields.get("TYPE") == "TICTACTOE_MOVE":
+                gameid = fields["GAMEID"]
+                move_id = fields["MESSAGE_ID"]
+                turn = fields["TURN"]
+                pos = int(fields["POSITION"])
+                sym = fields["SYMBOL"]
+
+                move_key = f"{gameid}:{turn}"
+                if move_key in seen_moves:
+                    send_ack(move_id, ip)
+                    continue
+
+                seen_moves.add(move_key)
+                send_ack(move_id, ip)
+                board[pos] = sym
+                print(f"\n[RECV] {sym} placed at {pos} (Turn {turn})")
+                displayBoard()
+
+            elif fields.get("TYPE") == "ACK":
+                acknowledged.add(fields["MESSAGE_ID"])
+
+        except socket.timeout:
+            continue
+
+def playGame(my_id, peer_ip, symbol, is_first):
+    gameid = "g123"
+    turn = 1 if is_first else 2
+
+    threading.Thread(target=receiver, args=(my_id,), daemon=True).start()
+
+    if is_first:
+        print("[GAME] You go first.")
+        displayBoard()
+    else:
+        print("[GAME] Waiting for opponent...")
+
+    while True:
+        if (turn % 2 == 1 and is_first) or (turn % 2 == 0 and not is_first):
+            while True:
+                try:
+                    pos = int(input("Choose position (0-8): "))
+                    if 0 <= pos <= 8 and board[pos] == " ":
+                        break
+                    print("Invalid or occupied cell.")
+                except:
+                    print("Enter a number 0-8.")
+
+            board[pos] = symbol
+            displayBoard()
+            send_move(gameid, turn, pos, symbol, my_id, peer_ip)
+        else:
+            print(f"[WAIT] Opponent's turn {turn}...")
+
+        turn += 1
+        time.sleep(1)
