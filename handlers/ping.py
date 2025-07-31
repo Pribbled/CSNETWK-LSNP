@@ -18,7 +18,7 @@ def cli_send():
         return
 
     msg = build_ping()
-    send_udp(msg, config.BROADCAST_IP)
+    send_udp(msg, config.BROADCAST_ADDRESS)
 
     if config.VERBOSE:
         print("📡 Sent PING broadcast.")

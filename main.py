@@ -12,6 +12,7 @@ from handlers import (
     file_transfer,
     group,
     game,
+    like,
     token,
     follow,
 )
@@ -83,6 +84,8 @@ def dispatch_message(msg: dict, addr: tuple, sock):
         profile.handle(msg, addr)
     elif msg_type == "POST":
         post.handle(msg, addr)
+    elif msg_type == "LIKE":
+        like.handle(msg, addr)
     elif msg_type == "DM":
         dm.handle(msg, addr)
     elif msg_type == "PING":

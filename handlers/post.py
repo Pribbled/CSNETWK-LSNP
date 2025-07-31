@@ -39,9 +39,15 @@ def send_post():
         "MESSAGE_ID": generate_message_id(),
         "TOKEN": token,
     }
-
-    posts[timestamp] = message
+    
     send_udp(build_message(message), BROADCAST_ADDRESS)
+
+    posts[timestamp] = {
+        "message": message,
+        "from": local_profile["USER_ID"],
+        "timestamp": timestamp
+    }
+        
     print("✅ POST broadcast sent.")
 
 
@@ -137,13 +143,18 @@ def handle_post(msg: dict):
     else:
         print(f"{display}: {content}")
 
-
 def handle_like(msg: dict):
-    action = msg.get("ACTION", "").upper()
-    from_user = msg.get("FROM")
-    to_user = msg.get("TO")
-    post_timestamp = msg.get("POST_TIMESTAMP")
+    msg_type = msg.get("TYPE", "").upper()
+    if msg_type != "LIKE":
+        return
 
+    action = msg.get("ACTION", "").upper()
+    from_user = msg.get("FROM", "")
+    to_user = msg.get("TO", "")
+    post_timestamp = msg.get("POST_TIMESTAMP", "")
+    token = msg.get("TOKEN", "")
+
+    # Basic validation
     if action not in ["LIKE", "UNLIKE"] or not from_user or not to_user or not post_timestamp:
         if VERBOSE:
             print("⚠️ Malformed LIKE/UNLIKE message.")
@@ -153,24 +164,24 @@ def handle_like(msg: dict):
         post_timestamp = int(post_timestamp)
     except ValueError:
         if VERBOSE:
-            print("⚠️ Invalid POST_TIMESTAMP.")
+            print("⚠️ Invalid POST_TIMESTAMP format.")
         return
 
+    # Check if the post exists
     post = posts.get(post_timestamp)
     if not post:
         if VERBOSE:
-            print("⚠️ Cannot find post with that timestamp.")
+            print("⚠️ LIKE received for unknown post timestamp: ", post_timestamp)
         return
 
-    post_author = post["USER_ID"]
-    if post_author != to_user:
-        if VERBOSE:
-            print("⚠️ TO field does not match actual post author.")
+    if to_user != local_profile["USER_ID"]:
+        # Message not for us
         return
 
-    message_preview = post.get("CONTENT", "")[:30] + "..." if len(post.get("CONTENT", "")) > 30 else post.get("CONTENT", "")
+    post_content = post.get("CONTENT", "")
+    preview = post_content if len(post_content) <= 30 else post_content[:30] + "..."
 
     if VERBOSE:
-        print(f"🔔 {from_user} {action.lower()}d post from {to_user} at {post_timestamp}")
+        print(f"🔔 {from_user} {action.lower()}d your post [{preview}]")
     else:
-        print(f"{from_user.split('@')[0]} {action.lower()}s your post [{message_preview}]")
+        print(f"{from_user.split('@')[0]} {action.lower()}s your post [{preview}]")

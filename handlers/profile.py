@@ -2,7 +2,7 @@ from message import build_message
 from socket_handler import send_udp
 from utils import generate_message_id, current_unix_timestamp
 from state import peers, local_profile
-from config import BROADCAST_ADDRESS
+from config import BROADCAST_ADDRESS, VERBOSE
 import config
 
 # ========== Constants ==========
@@ -58,25 +58,25 @@ def cli_send():
     status = input("Status message: ").strip()
     token = input("Optional token (press enter to skip): ").strip()
 
-    fields = {
+    user_id = local_profile["USER_ID"]
+    local_profile["NAME"] = name
+    local_profile["AVATAR"] = avatar
+    local_profile["STATUS"] = status
+
+    message = {
         "TYPE": "PROFILE",
-        "ID": generate_message_id(),
-        "TIME": str(current_unix_timestamp()),
-        "USER_ID": local_profile["USER_ID"],
-        "DISPLAY_NAME": name,
+        "USER_ID": user_id,
+        "NAME": name,
         "STATUS": status,
-        "TTL": str(config.DEFAULT_TTL),
+        "AVATAR_TYPE": "text/emoji",
+        "AVATAR_ENCODING": "utf-8",
+        "AVATAR_DATA": avatar.encode("utf-8").hex(),  # or base64 if used
     }
 
-    # Optional avatar fields
-    if avatar:
-        fields["AVATAR_TYPE"] = "text/emoji"
-        fields["AVATAR_ENCODING"] = "utf-8"
-        fields["AVATAR_DATA"] = avatar
-
     if token:
-        fields["TOKEN"] = token
+        message["TOKEN"] = token
 
-    msg = build_message(fields)
-    send_udp(msg, BROADCAST_ADDRESS)
-    print("✅ PROFILE broadcasted.")
+    send_udp(build_message(message), BROADCAST_ADDRESS)
+
+    if VERBOSE:
+        print("✅ PROFILE broadcasted.")

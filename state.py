@@ -23,6 +23,7 @@ local_profile = {
 peers = {}  # USER_ID → {DISPLAY_NAME, STATUS, AVATAR, etc.
 posts = {}  # {POST_ID: message}
 liked_posts = set()  # Store TIMESTAMPs of liked posts
+likes_received = {}
 
 tokens = {}  # {token_string: {"EXPIRES_AT": 1234567890, "SCOPE": "DM,..."}}
 revoked_tokens = set()
