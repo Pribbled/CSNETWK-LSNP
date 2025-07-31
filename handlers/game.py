@@ -1,6 +1,6 @@
 from message import build_message
 from socket_handler import send_unicast
-from state import config, games, peers
+from state import local_profile, games, peers
 from utils import generate_message_id, current_unix_timestamp
 
 def handle(msg: dict, addr: tuple):
@@ -14,7 +14,7 @@ def handle(msg: dict, addr: tuple):
     if msg_type == "GAME_INVITE":
         print(f"🎮 Game invite from {sender} (Game ID: {game_id})")
         games[game_id] = {
-            "players": [sender, config.USER_ID],
+            "players": [sender, local_profile.USER_ID],
             "board": [" "] * 9,
             "turn": sender,
         }
@@ -25,7 +25,7 @@ def handle(msg: dict, addr: tuple):
             game = games[game_id]
             if game["board"][idx] == " ":
                 game["board"][idx] = "X" if sender == game["players"][0] else "O"
-                game["turn"] = config.USER_ID  # switch turn
+                game["turn"] = local_profile.USER_ID  # switch turn
                 display_board(game["board"])
             else:
                 print(f"⚠️ Invalid move from {sender} (position {idx} already taken)")
@@ -54,7 +54,7 @@ def cli_game_invite():
     game_id = generate_message_id()
     msg = build_message({
         "TYPE": "GAME_INVITE",
-        "FROM": config.USER_ID,
+        "FROM": local_profile.USER_ID,
         "TO": target_id,
         "GAME": game_id,
         "TIME": str(current_unix_timestamp())
@@ -65,9 +65,9 @@ def cli_game_invite():
 
     # Initialize local game state
     games[game_id] = {
-        "players": [config.USER_ID, target_id],
+        "players": [local_profile.USER_ID, target_id],
         "board": [" "] * 9,
-        "turn": config.USER_ID,
+        "turn": local_profile.USER_ID,
     }
 
 def cli_game_move():
@@ -77,7 +77,7 @@ def cli_game_move():
         return
 
     game = games[game_id]
-    if game["turn"] != config.USER_ID:
+    if game["turn"] != local_profile.USER_ID:
         print("⏳ Not your turn.")
         return
 
@@ -87,7 +87,7 @@ def cli_game_move():
         print("❌ Invalid move.")
         return
 
-    game["board"][move] = "X" if config.USER_ID == game["players"][0] else "O"
+    game["board"][move] = "X" if local_profile.USER_ID == game["players"][0] else "O"
     game["turn"] = game["players"][1]  # switch turn
     display_board(game["board"])
 
@@ -95,7 +95,7 @@ def cli_game_move():
     opponent = game["players"][1]
     msg = build_message({
         "TYPE": "GAME_MOVE",
-        "FROM": config.USER_ID,
+        "FROM": local_profile.USER_ID,
         "TO": opponent,
         "GAME": game_id,
         "MOVE": str(move),
@@ -114,7 +114,7 @@ def cli_game_quit():
     opponent = games[game_id]["players"][1]
     msg = build_message({
         "TYPE": "GAME_QUIT",
-        "FROM": config.USER_ID,
+        "FROM": local_profile.USER_ID,
         "TO": opponent,
         "GAME": game_id,
         "TIME": str(current_unix_timestamp())

@@ -1,7 +1,7 @@
 from message import build_message
 from socket_handler import send_unicast
 from utils import generate_message_id, current_unix_timestamp
-from state import config, peers, follow_map
+from state import local_profile, peers, follow_map
 from handlers.token import validate
 
 # ========== RECEIVE ==========
@@ -12,7 +12,7 @@ def handle(msg: dict, addr: tuple):
     token = msg.get("TOKEN")
 
     # Only accept messages for self
-    if to_id != config.USER_ID or not from_id or not token:
+    if to_id != local_profile.USER_ID or not from_id or not token:
         return
 
     if not validate(token, "FOLLOW"):
@@ -42,7 +42,7 @@ def cli_follow():
 
     msg = build_message({
         "TYPE": "FOLLOW",
-        "FROM": config.USER_ID,
+        "FROM": local_profile.USER_ID,
         "TO": target,
         "TIMESTAMP": str(current_unix_timestamp()),
         "MESSAGE_ID": generate_message_id(),
@@ -65,7 +65,7 @@ def cli_unfollow():
 
     msg = build_message({
         "TYPE": "UNFOLLOW",
-        "FROM": config.USER_ID,
+        "FROM": local_profile.USER_ID,
         "TO": target,
         "TIMESTAMP": str(current_unix_timestamp()),
         "MESSAGE_ID": generate_message_id(),

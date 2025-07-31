@@ -2,7 +2,7 @@ from message import build_message
 from socket_handler import send_udp, send_unicast
 from state import group_map, peers
 from utils import generate_message_id, current_unix_timestamp
-from state import config
+from state import local_profile
 
 # ========== RECEIVE ==========
 def handle(msg: dict, addr: tuple):
@@ -46,7 +46,7 @@ def cli_group_create():
     msg = build_message({
         "TYPE": "GROUP_CREATE",
         "GROUP": group_id,
-        "USER": config.USER_ID,
+        "USER": local_profile.USER_ID,
         "TIME": str(current_unix_timestamp())
     })
 
@@ -62,7 +62,7 @@ def cli_group_join():
     msg = build_message({
         "TYPE": "GROUP_JOIN",
         "GROUP": group_id,
-        "USER": config.USER_ID,
+        "USER": local_profile.USER_ID,
         "TIME": str(current_unix_timestamp())
     })
 
@@ -71,7 +71,7 @@ def cli_group_join():
 
 def cli_group_msg():
     group_id = input("Group name: ").strip()
-    if group_id not in group_map or config.USER_ID not in group_map[group_id]["members"]:
+    if group_id not in group_map or local_profile.USER_ID not in group_map[group_id]["members"]:
         print("❌ You are not a member of this group.")
         return
 
@@ -83,7 +83,7 @@ def cli_group_msg():
     msg = build_message({
         "TYPE": "GROUP_MSG",
         "GROUP": group_id,
-        "USER": config.USER_ID,
+        "USER": local_profile.USER_ID,
         "TIME": str(current_unix_timestamp()),
         "CONTENT": content
     })
@@ -103,7 +103,7 @@ def cli_group_leave():
     msg = build_message({
         "TYPE": "GROUP_LEAVE",
         "GROUP": group_id,
-        "USER": config.USER_ID,
+        "USER": local_profile.USER_ID,
         "TIME": str(current_unix_timestamp())
     })
 

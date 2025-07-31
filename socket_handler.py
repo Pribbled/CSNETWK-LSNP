@@ -1,5 +1,5 @@
 import socket
-from config import PORT, BUFFER_SIZE, BROADCAST_ADDRESS
+from config import PORT, BUFFER_SIZE, BROADCAST_ADDRESS, VERBOSE
 
 def create_socket() -> socket.socket:
     """Creates and binds a UDP socket to listen for messages."""
@@ -19,7 +19,8 @@ def send_udp(message: str, ip: str, port: int = PORT):
 def receive_udp(sock: socket.socket) -> tuple[str, tuple[str, int]]:
     """Receives a UDP message and returns decoded text and sender address."""
     data, addr = sock.recvfrom(BUFFER_SIZE)
-    # print (data.decode('utf-8'), addr)
+    # if VERBOSE:
+    #     print (data.decode('utf-8'), addr)
     return data.decode('utf-8'), addr
 
 def send_unicast(message: str, ip: str, port: int = None):

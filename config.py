@@ -1,6 +1,6 @@
 # Protocol Transport & Constants
 PORT = 50999
-BROADCAST_ADDRESS = '<broadcast>'  # Replace with actual network broadcast
+BROADCAST_ADDRESS = '255.255.255.255'  # Replace with actual network broadcast
 BUFFER_SIZE = 65535
 ENCODING = 'utf-8'
 MESSAGE_TERMINATOR = '\n\n'

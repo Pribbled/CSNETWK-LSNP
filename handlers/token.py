@@ -1,7 +1,7 @@
 from message import build_message
 from socket_handler import send_unicast
 from utils import generate_message_id, current_unix_timestamp
-from state import tokens, revoked_tokens, peers, config
+from state import tokens, revoked_tokens, peers, local_profile
 
 # ========== Constants ==========
 DEFAULT_SCOPE = "POST,DM,FILE"
@@ -29,7 +29,7 @@ def handle_request(msg: dict, addr: tuple):
     token_str = f"TOKEN-{token_id}"
     tokens[token_str] = {
         "USER": requester,
-        "ISSUER": config.USER_ID,
+        "ISSUER": local_profile.USER_ID,
         "SCOPE": DEFAULT_SCOPE,
         "ISSUED_AT": issue_time,
         "EXPIRES_AT": expiry_time
@@ -39,7 +39,7 @@ def handle_request(msg: dict, addr: tuple):
         "TYPE": "TOKEN_REPLY",
         "ID": generate_message_id(),
         "TIME": str(issue_time),
-        "USER": config.USER_ID,
+        "USER": local_profile.USER_ID,
         "TO": requester,
         "TOKEN": token_str,
         "SCOPE": DEFAULT_SCOPE,
@@ -58,11 +58,11 @@ def handle_reply(msg: dict, addr: tuple):
     issuer = msg.get("USER")
     user = msg.get("TO")
 
-    if user != config.USER_ID or not token:
+    if user != local_profile.USER_ID or not token:
         return
 
     tokens[token] = {
-        "USER": config.USER_ID,
+        "USER": local_profile.USER_ID,
         "ISSUER": issuer,
         "SCOPE": scope,
         "ISSUED_AT": current_unix_timestamp(),
@@ -90,7 +90,7 @@ def cli_request():
         "TYPE": "TOKEN_REQUEST",
         "ID": generate_message_id(),
         "TIME": str(current_unix_timestamp()),
-        "USER": config.USER_ID,
+        "USER": local_profile.USER_ID,
         "TO": to_user
     })
 
@@ -106,7 +106,7 @@ def cli_revoke():
         "TYPE": "TOKEN_REVOKE",
         "ID": generate_message_id(),
         "TIME": str(current_unix_timestamp()),
-        "USER": config.USER_ID,
+        "USER": local_profile.USER_ID,
         "TOKEN": token,
         "REASON": reason or "Revoked by user"
     })

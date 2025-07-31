@@ -8,14 +8,9 @@ USER_ID = str(uuid.uuid4())[:8]  # or use a different scheme if LSNP requires a 
 # Optional: get local IP for better identification
 LOCAL_IP = socket.gethostbyname(socket.gethostname())
 
-config = {
+local_profile = {
     "USER_ID": USER_ID,
     "LOCAL_IP": LOCAL_IP,
-    # Add more as needed (like display name, etc.)
-}
-
-
-local_profile = {
     "Name": "",
     "Handle": "",
     "Bio": "",
