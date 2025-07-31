@@ -23,7 +23,7 @@ def getLocalIP():
     except:
         return "127.0.0.1"
 
-def handle_message(raw_msg, addr):
+def handle_message(raw_msg):
     global verbose_mode, known_peers, received_posts
     msg = parseMessage(raw_msg)
     msg_type = msg.get("TYPE", "")
@@ -100,7 +100,7 @@ while True:
         token = generateToken(user_id, ttl=60, scope="DM")
         message = buildMessage({
             "TYPE": "DM",
-            "FROM": from_id,
+            "FROM": user_id,
             "TO": to_id,
             "CONTENT": content,
             "TOKEN": token

@@ -1,6 +1,6 @@
 import socket
 import threading
-from constants import PORT, BUFFER, IP
+from constants import PORT, BUFFER, BROADCAST_IP
 
 class UDPSocket:
     def __init__(self, verbose = True):
@@ -16,7 +16,7 @@ class UDPSocket:
 
     def sendToAll(self, msg: str):
         data = msg.encode("utf-8")
-        self.sock.sendto(data, (IP, PORT))
+        self.sock.sendto(data, (BROADCAST_IP, PORT))
         if self.verbose:
             print(f"Message sent to all: {msg}")
 
