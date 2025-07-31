@@ -1,11 +1,11 @@
 # Protocol Transport & Constants
 PORT = 50999
-BROADCAST_ADDRESS = '255.255.255.255'  # Replace with actual network broadcast
+BROADCAST_ADDRESS = ''  # Replace with actual network broadcast
 BUFFER_SIZE = 65535
 ENCODING = 'utf-8'
 MESSAGE_TERMINATOR = '\n\n'
 FIELD_SEPARATOR = ': '
-VERBOSE = True
+VERBOSE = False
 
 # Intervals
 PING_INTERVAL = 300

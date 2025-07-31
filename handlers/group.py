@@ -1,6 +1,6 @@
 from message import build_message
 from socket_handler import send_udp, send_unicast
-from state import groups, peers
+from state import group_map, peers
 from utils import generate_message_id, current_unix_timestamp
 from state import config
 
@@ -15,26 +15,26 @@ def handle(msg: dict, addr: tuple):
     time = msg.get("TIME")
 
     if msg_type == "GROUP_CREATE":
-        if group_id not in groups:
-            groups[group_id] = {"members": set()}
-        groups[group_id]["members"].add(user)
+        if group_id not in group_map:
+            group_map[group_id] = {"members": set()}
+        group_map[group_id]["members"].add(user)
         print(f"👥 Group created: {group_id} by {user}")
 
     elif msg_type == "GROUP_JOIN":
-        if group_id not in groups:
-            groups[group_id] = {"members": set()}
-        groups[group_id]["members"].add(user)
+        if group_id not in group_map:
+            group_map[group_id] = {"members": set()}
+        group_map[group_id]["members"].add(user)
         print(f"➕ {user} joined group {group_id}")
 
     elif msg_type == "GROUP_MSG":
-        if group_id in groups and user in groups[group_id]["members"]:
+        if group_id in group_map and user in group_map[group_id]["members"]:
             print(f"💬 [{group_id}] {user}: {content}")
         else:
             print(f"⚠️ Message from non-member {user} in group {group_id} ignored.")
 
     elif msg_type == "GROUP_LEAVE":
-        if group_id in groups and user in groups[group_id]["members"]:
-            groups[group_id]["members"].remove(user)
+        if group_id in group_map and user in group_map[group_id]["members"]:
+            group_map[group_id]["members"].remove(user)
             print(f"👋 {user} left group {group_id}")
 
 # ========== CLI ==========
@@ -73,7 +73,7 @@ def cli_group_join():
 
 def cli_group_msg():
     group_id = input("Group name: ").strip()
-    if group_id not in groups or config.USER_ID not in groups[group_id]["members"]:
+    if group_id not in group_map or config.USER_ID not in group_map[group_id]["members"]:
         print("❌ You are not a member of this group.")
         return
 
@@ -98,7 +98,7 @@ def cli_group_msg():
 
 def cli_group_leave():
     group_id = input("Group to leave: ").strip()
-    if group_id not in groups:
+    if group_id not in group_map:
         print("❌ Group not found.")
         return
 
