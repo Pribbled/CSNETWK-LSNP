@@ -1,7 +1,7 @@
 from message import build_message
 from socket_handler import send_unicast
 from utils import generate_message_id, current_unix_timestamp
-from state import config, peers, followers
+from state import config, peers, follow_map
 from handlers.token import validate
 
 # ========== RECEIVE ==========
@@ -20,12 +20,12 @@ def handle(msg: dict, addr: tuple):
         return
 
     if msg_type == "FOLLOW":
-        if from_id not in followers:
-            followers[from_id] = {}
+        if from_id not in follow_map:
+            follow_map[from_id] = {}
         print(f"👤 User {from_id} has followed you.")
     elif msg_type == "UNFOLLOW":
-        if from_id in followers:
-            del followers[from_id]
+        if from_id in follow_map:
+            del follow_map[from_id]
         print(f"👤 User {from_id} has unfollowed you.")
 
 # ========== CLI ==========

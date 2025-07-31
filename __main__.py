@@ -13,7 +13,6 @@ from handlers import (
     game,
     token,
     follow,
-    unfollow
 )
 
 import sys
@@ -62,14 +61,13 @@ def dispatch_message(msg: dict, addr: tuple, sock):
             elif msg_type == "FOLLOW":
                 follow.handle_incoming(msg, addr)
             elif msg_type == "UNFOLLOW":
-                unfollow.handle_incoming(msg, addr)
+                follow.handle_incoming(msg, addr)
             else:
               if VERBOSE:
                   print(f"⚠️  Unknown message type: {msg_type}")
         except Exception as e:
             log(f"Receive error: {e}")
     
-
 def receive_loop():
     sock = create_socket()
     while running:
@@ -132,9 +130,9 @@ Available Commands:
             elif cmd == "game-quit":
                 game.cli_game_quit()
             elif cmd == "follow":
-                follow.handle_command()
+                follow.cli_follow()
             elif cmd == "unfollow":
-                unfollow.handle_command()
+                follow.cli_unfollow()
             elif cmd == "revoke":
                 token = input("Token to revoke: ").strip()
                 from token import revoke_token

@@ -1,7 +1,10 @@
 from message import build_message
 from socket_handler import send_udp, send_unicast
-from state import groups, config, peers
+from state import groups, peers
 from utils import generate_message_id, current_unix_timestamp
+from state import config
+
+#TODO: change configs to state user creation
 
 # ========== RECEIVE ==========
 def handle(msg: dict, addr: tuple):
