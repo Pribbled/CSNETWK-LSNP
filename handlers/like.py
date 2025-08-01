@@ -77,7 +77,7 @@ def handle(msg: dict, addr: tuple):
         return
 
     if to_user != local_profile["USER_ID"]:
-        return  # Not for us
+        return  # likes not for us
 
     preview = post.get("CONTENT", post.get("message", ""))[:30]
 

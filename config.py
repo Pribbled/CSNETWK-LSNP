@@ -1,13 +1,12 @@
 # Protocol Transport & Constants
 PORT = 50999
-BROADCAST_ADDRESS = '<broadcast>'  # Replace with actual network broadcast
+BROADCAST_ADDRESS = '<broadcast>'
 BUFFER_SIZE = 65535
 ENCODING = 'utf-8'
 MESSAGE_TERMINATOR = '\n\n'
 FIELD_SEPARATOR = ': '
 settings = {
     "VERBOSE": True,
-    # ... other config options if needed
 }
 
 # Intervals

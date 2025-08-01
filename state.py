@@ -3,11 +3,6 @@ from time import time
 import uuid
 import socket
 from utils import get_local_ip
-# Generate a unique user ID at startup
-# USER_ID = str(uuid.uuid4())[:8]  # or use a different scheme if LSNP requires a different format
-
-# Optional: get local IP for better identification
-# LOCAL_IP = socket.gethostbyname(socket.gethostname())
 
 local_profile = {
     "USER_ID": "",

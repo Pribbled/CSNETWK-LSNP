@@ -149,7 +149,7 @@ Available Commands:
 
 if __name__ == "__main__":
     from state import local_profile
-    from utils import get_local_ip  # if you modularize this later
+    # from utils import get_local_ip  # if you modularize this later
 
     username = input("Enter your LSNP username: ").strip()
     # local_profile["Name"] = username  # optional, if using as DISPLAY_NAME

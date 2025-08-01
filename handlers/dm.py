@@ -19,17 +19,17 @@ def handle(msg: dict, addr: tuple):
     required = ["TYPE", "FROM", "TO", "CONTENT", "TIMESTAMP", "MESSAGE_ID", "TOKEN"]
     if not all(k in msg for k in required):
         if settings["VERBOSE"]:
-            print(f"{YELLOW}⚠️  Malformed DM{RESET}")
+            print(f"{YELLOW}⚠️ Malformed DM message received.{RESET}")
         return
 
+    # Validate that the DM is for this local user
     recipient = msg["TO"]
-    # print(recipient)
-    # print(local_profile['USER_ID'])
     if recipient.lower() != local_profile["USER_ID"].lower():
         if settings["VERBOSE"]:
-            print(f"{YELLOW}📩 DM not for this user ({recipient} != {local_profile['USER_ID']}){RESET}")
+            print(f"{YELLOW}📩 Ignored DM not for us ({recipient} ≠ {local_profile['USER_ID']}){RESET}")
         return
 
+    # Token validation
     token = msg["TOKEN"]
     if not token or token in revoked_tokens:
         if settings["VERBOSE"]:
@@ -40,50 +40,43 @@ def handle(msg: dict, addr: tuple):
         expiry = tokens[token]["EXPIRES_AT"]
         if current_unix_timestamp() > expiry:
             if settings["VERBOSE"]:
-                print(f"{RED}❌ Rejected DM: token expired.{RESET}")
+                print(f"{RED}❌ Rejected DM: expired token.{RESET}")
             return
 
     sender = msg["FROM"]
     content = msg["CONTENT"]
+    timestamp = msg["TIMESTAMP"]
     display_name = peers.get(sender, {}).get("NAME", sender)
 
     if settings["VERBOSE"]:
-        print(f"\n{CYAN}💬 DM received from {sender} to {recipient}: {content}{RESET}")
+        print(f"\n{CYAN}💬 DM received from {sender} to {recipient}:{RESET} {content}")
     else:
-        print(f"{CYAN}{display_name}: {content}{RESET}")
+        print(f"{CYAN}{display_name}:{RESET} {content}")
 
     dm_history.append({
         "FROM": sender,
         "TO": recipient,
         "CONTENT": content,
-        "TIMESTAMP": msg["TIMESTAMP"]
+        "TIMESTAMP": timestamp
     })
 
 
-# ========== CLI ==========
+# ========== CLI Send ==========
 def cli_send():
     if not peers:
-        print(f"{RED}❌ No known peers. Receive a PROFILE first.{RESET}")
+        print(f"{RED}❌ No known peers. Try receiving a PROFILE first.{RESET}")
         return
 
     print(f"{CYAN}Known peers:{RESET}")
     for uid, info in peers.items():
+        name = info.get("NAME", "")
         ip = get_peer_address(uid)
-        name = info.get('NAME', '')
         print(f" - {uid} @ {ip} (name: {name})")
 
-        if not ip:
-            print(f"{RED}❌ Could not resolve IP for {uid}{RESET}")
-            return
-
-    # Ask for username input
     input_uid = input("Recipient USER ID: ").strip()
-    if "@" in input_uid:
-        input_username = input_uid.split("@")[0].lower()
-    else:
-        input_username = input_uid.lower()
 
-    # Match by username
+    # Match USER_ID by username (before @)
+    input_username = input_uid.split("@")[0].lower()
     matched_uid = None
     for uid in peers:
         peer_username = uid.split("@")[0].lower()
@@ -98,7 +91,7 @@ def cli_send():
     peer_info = peers[matched_uid]
     ip = peer_info.get("ADDRESS")
     if not ip:
-        print(f"{RED}❌ Could not determine recipient IP.{RESET}")
+        print(f"{RED}❌ Could not determine IP for {matched_uid}{RESET}")
         return
 
     content = input("Message content: ").strip()
@@ -111,7 +104,7 @@ def cli_send():
     ttl = 3600
     token = generate_token(from_user, timestamp, ttl, "chat")
 
-    fields = {
+    msg = build_message({
         "TYPE": "DM",
         "FROM": from_user,
         "TO": matched_uid,
@@ -119,9 +112,7 @@ def cli_send():
         "TIMESTAMP": str(timestamp),
         "MESSAGE_ID": generate_message_id(),
         "TOKEN": token
-    }
-
-    msg = build_message(fields)
+    })
 
     if settings["VERBOSE"]:
         print(f"{CYAN}📤 Sending DM to {matched_uid} at {ip}...\nMessage:\n{msg}{RESET}")

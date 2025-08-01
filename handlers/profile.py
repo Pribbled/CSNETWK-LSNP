@@ -84,7 +84,7 @@ def cli_send():
         "STATUS": status,
         "AVATAR_TYPE": "text/emoji",
         "AVATAR_ENCODING": "utf-8",
-        "AVATAR_DATA": avatar.encode("utf-8").hex(),  # or base64 if needed
+        "AVATAR_DATA": avatar.encode("utf-8").hex(),
     }
 
     if token:
