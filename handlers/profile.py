@@ -26,6 +26,7 @@ def handle(msg: dict, addr: tuple):
     sender_user_id = msg.get("USER_ID", "").strip()
 
     if not all(field in msg for field in REQUIRED_FIELDS):
+        # print(msg)
         if settings["VERBOSE"]:
             print(f"{YELLOW}⚠️  Malformed PROFILE received (missing fields).{RESET}")
         return

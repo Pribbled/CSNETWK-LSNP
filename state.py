@@ -15,7 +15,7 @@ local_profile = {
     "LOCAL_IP": get_local_ip(),
     "Name": "",
     "Handle": "",
-    "Bio": "",
+    "Status": "",
     "Avatar": "",
 }
 

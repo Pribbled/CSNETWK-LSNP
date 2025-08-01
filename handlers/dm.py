@@ -23,6 +23,8 @@ def handle(msg: dict, addr: tuple):
         return
 
     recipient = msg["TO"]
+    # print(recipient)
+    # print(local_profile['USER_ID'])
     if recipient.lower() != local_profile["USER_ID"].lower():
         if settings["VERBOSE"]:
             print(f"{YELLOW}📩 DM not for this user ({recipient} != {local_profile['USER_ID']}){RESET}")

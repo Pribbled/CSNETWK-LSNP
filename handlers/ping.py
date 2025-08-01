@@ -39,10 +39,10 @@ def handle(msg: dict, addr: tuple):
         "TYPE": "PROFILE",
         "USER_ID": local_profile["USER_ID"],
         "NAME": local_profile.get("NAME", ""),
+        "STATUS": local_profile.get("STATUS", ""),
         "AVATAR_TYPE": local_profile.get("AVATAR_TYPE", "text/emoji"),
         "AVATAR_ENCODING": local_profile.get("AVATAR_ENCODING", "utf-8"),
         "AVATAR_DATA": local_profile.get("AVATAR_DATA", ""),
-        "STATUS": local_profile.get("STATUS", "")
     }
 
     response = build_message(fields)
