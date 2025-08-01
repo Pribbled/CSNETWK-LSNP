@@ -1,9 +1,8 @@
 from message import build_message
 from socket_handler import send_unicast
 from utils import generate_message_id, current_unix_timestamp, generate_token
-from state import peers, tokens, revoked_tokens, dm_history, local_profile
+from state import peers, tokens, revoked_tokens, dm_history, local_profile, get_peer_address
 import config
-
 
 # ========== Receive ==========
 def handle(msg: dict, addr: tuple):
@@ -17,9 +16,9 @@ def handle(msg: dict, addr: tuple):
         return
 
     recipient = msg["TO"]
-    if recipient != local_profile["USER_ID"]:
+    if recipient.lower() != local_profile["USER_ID"].lower():
         if config.VERBOSE:
-            print(f"📩 DM not intended for this user ({recipient} != {local_profile['USER_ID']})")
+            print(f"📩 DM not for this user ({recipient} != {local_profile['USER_ID']})")
         return
 
     token = msg["TOKEN"]
@@ -41,7 +40,7 @@ def handle(msg: dict, addr: tuple):
     display_name = peers.get(sender, {}).get("NAME", sender)
 
     if config.VERBOSE:
-        print(f"\n💬 DM from {sender} to {recipient}: {content}")
+        print(f"\n💬 DM received from {sender} to {recipient}: {content}")
     else:
         print(f"{display_name}: {content}")
 
@@ -52,7 +51,6 @@ def handle(msg: dict, addr: tuple):
         "TIMESTAMP": msg["TIMESTAMP"]
     })
 
-
 # ========== CLI ==========
 def cli_send():
     if not peers:
@@ -61,13 +59,42 @@ def cli_send():
 
     print("Known peers:")
     for uid, info in peers.items():
-        print(f" - {uid}: {info.get('NAME', '')} @ {info.get('ADDRESS')}")
+        ip = get_peer_address(uid)
+        name = info.get('NAME', '')
+        print(f" - {uid} ({ip}) (name: {name})")
 
-    to_user = input("Recipient USER ID: ").strip()
-    content = input("Message content: ").strip()
+        if not ip:
+            print(f"❌ Could not resolve IP for {uid}")
+            return
 
-    if to_user not in peers:
+    # Ask for username input
+    input_uid = input("Recipient USER ID: ").strip()
+    if "@" in input_uid:
+        input_username = input_uid.split("@")[0].lower()
+    else:
+        input_username = input_uid.lower()
+
+    # Match by username
+    matched_uid = None
+    for uid in peers:
+        peer_username = uid.split("@")[0].lower()
+        if peer_username == input_username:
+            matched_uid = uid
+            break
+
+    if not matched_uid:
         print("❌ Unknown recipient.")
+        return
+
+    peer_info = peers[matched_uid]
+    ip = peer_info.get("ADDRESS")
+    if not ip:
+        print("❌ Could not determine recipient IP.")
+        return
+
+    content = input("Message content: ").strip()
+    if not content:
+        print("❌ Cannot send empty message.")
         return
 
     from_user = local_profile["USER_ID"]
@@ -78,7 +105,7 @@ def cli_send():
     fields = {
         "TYPE": "DM",
         "FROM": from_user,
-        "TO": to_user,
+        "TO": matched_uid,
         "CONTENT": content,
         "TIMESTAMP": str(timestamp),
         "MESSAGE_ID": generate_message_id(),
@@ -86,6 +113,9 @@ def cli_send():
     }
 
     msg = build_message(fields)
-    ip = peers[to_user]["ADDRESS"]
+
+    if config.VERBOSE:
+        print(f"📤 Sending DM to {matched_uid} at {ip}...\nMessage:\n{msg}")
+
     send_unicast(msg, ip)
     print("✅ DM sent.")

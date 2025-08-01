@@ -1,13 +1,13 @@
 from message import build_message
 from socket_handler import send_udp
 from utils import generate_message_id, current_unix_timestamp
-from state import peers, local_profile
+from state import peers, local_profile, get_peer_address
 from config import BROADCAST_ADDRESS, VERBOSE
 import config
 
 # ========== Constants ==========
 VALID_TYPE = "PROFILE"
-REQUIRED_FIELDS = ["TYPE", "USER_ID", "DISPLAY_NAME", "STATUS"]
+REQUIRED_FIELDS = ["TYPE", "USER_ID", "NAME", "STATUS"]
 OPTIONAL_AVATAR_FIELDS = ["AVATAR_TYPE", "AVATAR_ENCODING", "AVATAR_DATA"]
 
 # ========== Receive ==========
@@ -15,35 +15,41 @@ def handle(msg: dict, addr: tuple):
     if msg.get("TYPE", "").upper() != "PROFILE":
         return
 
-    ip = addr[0]  # actual sender IP
-    sender_user_id = msg.get("USER_ID", "")
+    ip = addr
+    sender_user_id = msg.get("USER_ID", "").strip()
 
+    if not all(field in msg for field in REQUIRED_FIELDS):
+        if VERBOSE:
+            print("⚠️  Malformed PROFILE received (missing fields).")
+        return
+
+    # Extract username from sender USER_ID and from our own local_profile
     try:
-        username_part = sender_user_id.split("@")[0]
-    except IndexError:
-        if config.VERBOSE:
+        sender_username = sender_user_id.split("@")[0].lower()
+        local_username = local_profile["USER_ID"].split("@")[0].lower()
+    except Exception:
+        if VERBOSE:
             print("⚠️  Malformed USER_ID in PROFILE.")
         return
 
-    reconstructed_user_id = f"{username_part}@{ip}"
-
-    if reconstructed_user_id == local_profile["USER_ID"]:
-        if config.VERBOSE:
+    # Ignore if same username (regardless of IP/interface)
+    if sender_username == local_username:
+        if VERBOSE:
             print("ℹ️  Ignoring self profile broadcast.")
         return
 
-    # store peer info using reconstructed ID
-    peers[reconstructed_user_id] = {
+    # Save peer info using the full USER_ID
+    peers[sender_user_id] = {
         "NAME": msg.get("NAME", ""),
         "STATUS": msg.get("STATUS", ""),
-        "ADDRESS": ip,
+        "ADDRESS": get_peer_address(sender_user_id),
         "AVATAR_TYPE": msg.get("AVATAR_TYPE", ""),
         "AVATAR_ENCODING": msg.get("AVATAR_ENCODING", ""),
         "AVATAR_DATA": msg.get("AVATAR_DATA", ""),
     }
 
-    if config.VERBOSE:
-        print(f"\n📥 PROFILE received from {reconstructed_user_id}")
+    if VERBOSE:
+        print(f"\n📥 PROFILE received from {sender_user_id}")
         print(f"  NAME: {msg.get('NAME', '')}")
         print(f"  STATUS: {msg.get('STATUS', '')}")
         print(f"  AVATAR_TYPE: {msg.get('AVATAR_TYPE', '')}")
@@ -58,19 +64,18 @@ def cli_send():
     status = input("Status message: ").strip()
     token = input("Optional token (press enter to skip): ").strip()
 
-    user_id = local_profile["USER_ID"]
     local_profile["NAME"] = name
     local_profile["AVATAR"] = avatar
     local_profile["STATUS"] = status
 
     message = {
         "TYPE": "PROFILE",
-        "USER_ID": user_id,
+        "USER_ID": local_profile["USER_ID"],
         "NAME": name,
         "STATUS": status,
         "AVATAR_TYPE": "text/emoji",
         "AVATAR_ENCODING": "utf-8",
-        "AVATAR_DATA": avatar.encode("utf-8").hex(),  # or base64 if used
+        "AVATAR_DATA": avatar.encode("utf-8").hex(),  # or base64 if you're using that
     }
 
     if token:

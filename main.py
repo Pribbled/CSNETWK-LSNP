@@ -17,56 +17,9 @@ from handlers import (
     follow,
 )
 
-import sys
-
-
 def log(msg: str):
     if VERBOSE:
         print(f"[LOG] {msg}")
-
-# def dispatch_message(msg: dict, addr: tuple, sock):
-#     msg_type = msg.get("TYPE", "").upper()
-    
-#     if VERBOSE:
-#         print(f"[{current_unix_timestamp()}] < {addr[0]}:{addr[1]} | TYPE: {msg_type}")
-
-#     try:
-#         data, addr = receive_udp(sock)
-#         msg = parse_message(data)
-#         msg_id = msg.get("Message-ID")
-
-#         if msg_id and msg_id in seen_message_ids:
-#             continue  # Skip duplicate messages
-#         if msg_id:
-#             seen_message_ids.add(msg_id)
-
-#         msg_type = msg.get("Type")
-#         if not msg_type:
-#             continue
-
-#         if msg_type == "PROFILE":
-#             profile.handle(msg, addr)
-#         elif msg_type == "POST":
-#             post.handle(msg, addr)
-#         elif msg_type == "DM":
-#             dm.handle(msg, addr)
-#         elif msg_type.startswith("FILE_"):
-#             file_transfer.handle(msg, addr)
-#         elif msg_type.startswith("GROUP_"):
-#             group.handle(msg, addr)
-#         elif msg_type.startswith("GAME_"):
-#             game.handle(msg, addr)
-#         elif msg_type == "TOKEN":
-#             token.handle(msg, addr)
-#         elif msg_type == "FOLLOW":
-#             follow.handle(msg, addr)
-#         elif msg_type == "UNFOLLOW":
-#             follow.handle(msg, addr)
-#         else:
-#             if VERBOSE:
-#                 print(f"⚠️  Unknown message type: {msg_type}")
-#     except Exception as e:
-#         log(f"Receive error: {e}")
 
 def dispatch_message(msg: dict, addr: tuple, sock):
     msg_type = msg.get("TYPE", "").upper()
@@ -131,6 +84,7 @@ def cli_loop():
 Available Commands:
 - profile     Send PROFILE update
 - post        Broadcast a POST
+- like        Like a POST
 - dm          Send a direct message
 - follow      Follow a user
 - file        Send a FILE_OFFER
@@ -145,6 +99,8 @@ Available Commands:
                 profile.cli_send()
             elif cmd == "post":
                 post.cli_send()
+            elif cmd == "like":
+                like.cli_send()
             elif cmd == "dm":
                 dm.cli_send()
             elif cmd == "ping":

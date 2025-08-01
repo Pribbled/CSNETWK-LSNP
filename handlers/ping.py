@@ -8,7 +8,9 @@ import threading
 def build_ping():
     return build_message({
         "TYPE": "PING",
-        "USER_ID": local_profile.get("USER_ID", "")
+        "USER_ID": local_profile["USER_ID"],
+        "NAME": local_profile.get("NAME", ""),
+        "STATUS": local_profile.get("STATUS", "")
     })
 
 # CLI-invoked PING command

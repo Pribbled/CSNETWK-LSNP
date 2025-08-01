@@ -8,20 +8,7 @@ from utils import (
 from state import posts, local_profile, follow_map, liked_posts
 from config import BROADCAST_ADDRESS, VERBOSE
 
-
 def cli_send():
-    print("Send a post or like: [1] POST  [2] LIKE / UNLIKE")
-    choice = input("Choose type (1/2): ").strip()
-
-    if choice == "1":
-        send_post()
-    elif choice == "2":
-        send_like()
-    else:
-        print("❌ Invalid choice.")
-
-
-def send_post():
     content = input("Post content: ").strip()
     ttl = input("TTL in seconds (default 3600): ").strip()
     ttl = int(ttl) if ttl.isdigit() else 3600
@@ -39,7 +26,7 @@ def send_post():
         "MESSAGE_ID": generate_message_id(),
         "TOKEN": token,
     }
-    
+
     send_udp(build_message(message), BROADCAST_ADDRESS)
 
     posts[timestamp] = {

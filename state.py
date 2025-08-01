@@ -35,3 +35,11 @@ group_map = defaultdict(dict)  # GROUP_ID → {group_name, members}
 seen_message_ids = set()
 file_transfers = {}  # FILEID → chunks
 games = {}  # GAMEID → current board state
+
+def get_peer_address(user_id):
+    username = user_id.split("@")[0]
+    # Search for peer with matching username
+    for peer_id, info in peers.items():
+        if peer_id.startswith(username + "@"):
+            return info["ADDRESS"]
+    return None
