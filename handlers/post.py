@@ -6,7 +6,16 @@ from utils import (
     generate_token,
 )
 from state import posts, local_profile, follow_map, liked_posts
-from config import BROADCAST_ADDRESS, VERBOSE
+from config import BROADCAST_ADDRESS, settings
+
+# ========== Colors ==========
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
+MAGENTA = "\033[95m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
 
 def cli_send():
     content = input("Post content: ").strip()
@@ -34,8 +43,8 @@ def cli_send():
         "from": local_profile["USER_ID"],
         "timestamp": timestamp
     }
-        
-    print("✅ POST broadcast sent.")
+
+    print(f"{GREEN}✅ POST broadcast sent.{RESET}")
 
 
 def send_like():
@@ -43,18 +52,18 @@ def send_like():
     action = input("Action [LIKE/UNLIKE]: ").strip().upper()
 
     if action not in ["LIKE", "UNLIKE"]:
-        print("❌ Invalid action.")
+        print(f"{RED}❌ Invalid action.{RESET}")
         return
 
     try:
         post_timestamp = int(post_timestamp)
     except ValueError:
-        print("❌ Invalid TIMESTAMP.")
+        print(f"{RED}❌ Invalid TIMESTAMP.{RESET}")
         return
 
     post = posts.get(post_timestamp)
     if not post:
-        print("❌ No post found with that TIMESTAMP.")
+        print(f"{RED}❌ No post found with that TIMESTAMP.{RESET}")
         return
 
     target_user = post["USER_ID"]
@@ -63,12 +72,11 @@ def send_like():
     ttl = 3600
     token = generate_token(sender, timestamp, ttl, "broadcast")
 
-    # Avoid duplicate likes/unlikes
     if action == "LIKE" and post_timestamp in liked_posts:
-        print("⚠️ Already liked.")
+        print(f"{YELLOW}⚠️ Already liked.{RESET}")
         return
     elif action == "UNLIKE" and post_timestamp not in liked_posts:
-        print("⚠️ Cannot unlike a post that was not liked.")
+        print(f"{YELLOW}⚠️ Cannot unlike a post that was not liked.{RESET}")
         return
 
     if action == "LIKE":
@@ -87,7 +95,7 @@ def send_like():
     }
 
     send_udp(build_message(message), BROADCAST_ADDRESS)
-    print(f"✅ {action} sent to {target_user}.")
+    print(f"{GREEN}✅ {action} sent to {target_user}.{RESET}")
 
 
 # ===================== RECEIVE =====================
@@ -106,29 +114,25 @@ def handle_post(msg: dict):
     timestamp = msg.get("TIMESTAMP")
 
     if not user or not content or not timestamp:
-        if VERBOSE:
-            print("⚠️ Malformed POST received.")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️ Malformed POST received.{RESET}")
         return
 
     try:
         timestamp = int(timestamp)
     except ValueError:
-        if VERBOSE:
-            print("⚠️ Invalid TIMESTAMP format.")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️ Invalid TIMESTAMP format.{RESET}")
         return
 
-    # if user not in follow_map or local_profile["USER_ID"] not in follow_map[user]:
-    #     if VERBOSE:
-    #         print(f"🚫 Not following {user}. Ignoring POST.")
-    #     return
-
     posts[timestamp] = msg
-    display = user.split("@")[0]  # Use handle or fallback to user_id
+    display = user.split("@")[0]
 
-    if VERBOSE:
-        print(f"📝 POST from {user}: {content}")
+    if settings["VERBOSE"]:
+        print(f"{BLUE}📝 POST from {user}:{RESET} {content}")
     else:
-        print(f"{display}: {content}")
+        print(f"{CYAN}{display}{RESET}: {content}")
+
 
 def handle_like(msg: dict):
     msg_type = msg.get("TYPE", "").upper()
@@ -141,34 +145,31 @@ def handle_like(msg: dict):
     post_timestamp = msg.get("POST_TIMESTAMP", "")
     token = msg.get("TOKEN", "")
 
-    # Basic validation
     if action not in ["LIKE", "UNLIKE"] or not from_user or not to_user or not post_timestamp:
-        if VERBOSE:
-            print("⚠️ Malformed LIKE/UNLIKE message.")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️ Malformed LIKE/UNLIKE message.{RESET}")
         return
 
     try:
         post_timestamp = int(post_timestamp)
     except ValueError:
-        if VERBOSE:
-            print("⚠️ Invalid POST_TIMESTAMP format.")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️ Invalid POST_TIMESTAMP format.{RESET}")
         return
 
-    # Check if the post exists
     post = posts.get(post_timestamp)
     if not post:
-        if VERBOSE:
-            print("⚠️ LIKE received for unknown post timestamp: ", post_timestamp)
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️ LIKE received for unknown post timestamp: {post_timestamp}{RESET}")
         return
 
     if to_user != local_profile["USER_ID"]:
-        # Message not for us
         return
 
     post_content = post.get("CONTENT", "")
     preview = post_content if len(post_content) <= 30 else post_content[:30] + "..."
 
-    if VERBOSE:
-        print(f"🔔 {from_user} {action.lower()}d your post [{preview}]")
+    if settings["VERBOSE"]:
+        print(f"{MAGENTA}🔔 {from_user} {action.lower()}d your post [{preview}]{RESET}")
     else:
-        print(f"{from_user.split('@')[0]} {action.lower()}s your post [{preview}]")
+        print(f"{MAGENTA}{from_user.split('@')[0]} {action.lower()}s your post [{preview}]{RESET}")

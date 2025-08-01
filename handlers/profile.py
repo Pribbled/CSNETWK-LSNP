@@ -2,8 +2,15 @@ from message import build_message
 from socket_handler import send_udp
 from utils import generate_message_id, current_unix_timestamp
 from state import peers, local_profile, get_peer_address
-from config import BROADCAST_ADDRESS, VERBOSE
-import config
+from config import BROADCAST_ADDRESS, settings
+
+# ========== Color Constants ==========
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
 
 # ========== Constants ==========
 VALID_TYPE = "PROFILE"
@@ -15,12 +22,12 @@ def handle(msg: dict, addr: tuple):
     if msg.get("TYPE", "").upper() != "PROFILE":
         return
 
-    ip = addr
+    ip = addr[0]
     sender_user_id = msg.get("USER_ID", "").strip()
 
     if not all(field in msg for field in REQUIRED_FIELDS):
-        if VERBOSE:
-            print("⚠️  Malformed PROFILE received (missing fields).")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️  Malformed PROFILE received (missing fields).{RESET}")
         return
 
     # Extract username from sender USER_ID and from our own local_profile
@@ -28,34 +35,35 @@ def handle(msg: dict, addr: tuple):
         sender_username = sender_user_id.split("@")[0].lower()
         local_username = local_profile["USER_ID"].split("@")[0].lower()
     except Exception:
-        if VERBOSE:
-            print("⚠️  Malformed USER_ID in PROFILE.")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️  Malformed USER_ID in PROFILE.{RESET}")
         return
 
     # Ignore if same username (regardless of IP/interface)
     if sender_username == local_username:
-        if VERBOSE:
-            print("ℹ️  Ignoring self profile broadcast.")
+        if settings["VERBOSE"]:
+            print(f"{BLUE}ℹ️  Ignoring self profile broadcast.{RESET}")
         return
 
     # Save peer info using the full USER_ID
     peers[sender_user_id] = {
         "NAME": msg.get("NAME", ""),
         "STATUS": msg.get("STATUS", ""),
-        "ADDRESS": get_peer_address(sender_user_id),
+        "ADDRESS": ip,
         "AVATAR_TYPE": msg.get("AVATAR_TYPE", ""),
         "AVATAR_ENCODING": msg.get("AVATAR_ENCODING", ""),
         "AVATAR_DATA": msg.get("AVATAR_DATA", ""),
     }
 
-    if VERBOSE:
-        print(f"\n📥 PROFILE received from {sender_user_id}")
-        print(f"  NAME: {msg.get('NAME', '')}")
-        print(f"  STATUS: {msg.get('STATUS', '')}")
-        print(f"  AVATAR_TYPE: {msg.get('AVATAR_TYPE', '')}")
-        print(f"  AVATAR_ENCODING: {msg.get('AVATAR_ENCODING', '')}")
-        print(f"  AVATAR_DATA: (base64 {len(msg.get('AVATAR_DATA', ''))} bytes)")
-
+    if settings["VERBOSE"]:
+        print(f"\n{CYAN}📥 PROFILE received from {sender_user_id}{RESET}")
+        print(f"  {BLUE}NAME:{RESET} {msg.get('NAME', '')}")
+        print(f"  {BLUE}STATUS:{RESET} {msg.get('STATUS', '')}")
+        print(f"  {BLUE}AVATAR_TYPE:{RESET} {msg.get('AVATAR_TYPE', '')}")
+        print(f"  {BLUE}AVATAR_ENCODING:{RESET} {msg.get('AVATAR_ENCODING', '')}")
+        print(f"  {BLUE}AVATAR_DATA:{RESET} (base64 {len(msg.get('AVATAR_DATA', ''))} bytes)")
+    else:
+        print(f"{CYAN}👤 {msg.get('NAME', '')}:{RESET} {msg.get('STATUS', '')}")
 
 # ========== Send ==========
 def cli_send():
@@ -75,7 +83,7 @@ def cli_send():
         "STATUS": status,
         "AVATAR_TYPE": "text/emoji",
         "AVATAR_ENCODING": "utf-8",
-        "AVATAR_DATA": avatar.encode("utf-8").hex(),  # or base64 if you're using that
+        "AVATAR_DATA": avatar.encode("utf-8").hex(),  # or base64 if needed
     }
 
     if token:
@@ -83,5 +91,5 @@ def cli_send():
 
     send_udp(build_message(message), BROADCAST_ADDRESS)
 
-    if VERBOSE:
-        print("✅ PROFILE broadcasted.")
+    if settings["VERBOSE"]:
+        print(f"{GREEN}✅ PROFILE broadcasted.{RESET}")

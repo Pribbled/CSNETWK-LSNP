@@ -1,7 +1,7 @@
 from state import local_profile
 from socket_handler import send_unicast, send_udp
 from message import build_message
-import config
+from config import settings, PING_INTERVAL, BROADCAST_ADDRESS
 import time
 import threading
 
@@ -20,9 +20,9 @@ def cli_send():
         return
 
     msg = build_ping()
-    send_udp(msg, config.BROADCAST_ADDRESS)
+    send_udp(msg, BROADCAST_ADDRESS)
 
-    if config.VERBOSE:
+    if settings["VERBOSE"]:
         print("📡 Sent PING broadcast.")
 
 # Respond to received PING
@@ -31,7 +31,7 @@ def handle(msg: dict, addr: tuple):
         return
 
     if not local_profile.get("USER_ID"):
-        if config.VERBOSE:
+        if settings["VERBOSE"]:
             print("⚠️  Ignored PING (no local profile set).")
         return
 
@@ -48,21 +48,21 @@ def handle(msg: dict, addr: tuple):
     response = build_message(fields)
     send_unicast(response, addr[0])
 
-    if config.VERBOSE:
+    if settings["VERBOSE"]:
         print(f"📤 Responded to PING with PROFILE to {addr[0]}")
 
 # Auto PING loop (daemon thread)
 def auto_ping_loop():
     while True:
         if not local_profile.get("USER_ID"):
-            time.sleep(config.PING_INTERVAL)
+            time.sleep(PING_INTERVAL)
             continue
 
         msg = build_ping()
-        if config.VERBOSE:
+        if settings["VERBOSE"]:
             print("📡 Broadcasting PING...")
-        send_udp(msg, config.BROADCAST_ADDRESS)
-        time.sleep(config.PING_INTERVAL)
+        send_udp(msg, BROADCAST_ADDRESS)
+        time.sleep(PING_INTERVAL)
 
 def start_auto_ping():
     t = threading.Thread(target=auto_ping_loop, daemon=True)

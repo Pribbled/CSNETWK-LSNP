@@ -2,7 +2,14 @@ from message import build_message
 from socket_handler import send_udp
 from utils import current_unix_timestamp, generate_token
 from state import posts, local_profile, liked_posts
-from config import BROADCAST_ADDRESS, VERBOSE
+from config import BROADCAST_ADDRESS, settings
+
+# ========== Color Constants ==========
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
 
 def cli_send():
     post_timestamp = input("Enter TIMESTAMP of post to like/unlike: ").strip()
@@ -10,12 +17,12 @@ def cli_send():
     try:
         post_timestamp = int(post_timestamp)
     except ValueError:
-        print("❌ Invalid TIMESTAMP.")
+        print(f"{RED}❌ Invalid TIMESTAMP.{RESET}")
         return
 
     post = posts.get(post_timestamp)
     if not post:
-        print("❌ No post found with that TIMESTAMP.")
+        print(f"{RED}❌ No post found with that TIMESTAMP.{RESET}")
         return
 
     target_user = post.get("USER_ID")
@@ -42,7 +49,7 @@ def cli_send():
     }
 
     send_udp(build_message(message), BROADCAST_ADDRESS)
-    print(f"✅ {action} sent to {target_user}.")
+    print(f"{GREEN}✅ {action} sent to {target_user}.{RESET}")
 
 
 def handle(msg: dict, addr: tuple):
@@ -52,21 +59,21 @@ def handle(msg: dict, addr: tuple):
     post_timestamp = msg.get("POST_TIMESTAMP")
 
     if action not in ["LIKE", "UNLIKE"] or not from_user or not to_user or not post_timestamp:
-        if VERBOSE:
-            print("⚠️ Malformed LIKE/UNLIKE message.")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️ Malformed LIKE/UNLIKE message.{RESET}")
         return
 
     try:
         post_timestamp = int(post_timestamp)
     except ValueError:
-        if VERBOSE:
-            print("⚠️ Invalid POST_TIMESTAMP.")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️ Invalid POST_TIMESTAMP.{RESET}")
         return
 
     post = posts.get(post_timestamp)
     if not post:
-        if VERBOSE:
-            print(f"⚠️ LIKE received for unknown post timestamp: {post_timestamp}")
+        if settings["VERBOSE"]:
+            print(f"{YELLOW}⚠️ LIKE received for unknown post timestamp: {post_timestamp}{RESET}")
         return
 
     if to_user != local_profile["USER_ID"]:
@@ -74,9 +81,9 @@ def handle(msg: dict, addr: tuple):
 
     preview = post.get("CONTENT", post.get("message", ""))[:30]
 
-    if VERBOSE:
-        print(f"💬 {action} received from {from_user} on post {post_timestamp}")
+    if settings["VERBOSE"]:
+        print(f"{CYAN}💬 {action} received from {from_user} on post {post_timestamp}{RESET}")
     elif action == "LIKE":
-        print(f"{from_user.split('@')[0]} likes your post [{preview}]")
+        print(f"{GREEN}{from_user.split('@')[0]} likes your post [{preview}]{RESET}")
     elif action == "UNLIKE":
-        print(f"{from_user.split('@')[0]} unliked your post [{preview}]")
+        print(f"{RED}{from_user.split('@')[0]} unliked your post [{preview}]{RESET}")

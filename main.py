@@ -3,7 +3,7 @@ from socket_handler import create_socket, receive_udp
 from message import parse_message
 from state import seen_message_ids
 from utils import current_unix_timestamp
-from config import VERBOSE
+from config import settings
 from handlers import (
     profile,
     post,
@@ -18,13 +18,17 @@ from handlers import (
 )
 
 def log(msg: str):
-    if VERBOSE:
+    if settings["VERBOSE"]:
         print(f"[LOG] {msg}")
+
+def toggle_verbose():
+    settings["VERBOSE"] = not settings["VERBOSE"]
+    print(f"{'🔊 Verbose ON' if settings['VERBOSE'] else '🔈 Verbose OFF'}")
 
 def dispatch_message(msg: dict, addr: tuple, sock):
     msg_type = msg.get("TYPE", "").upper()
 
-    if VERBOSE:
+    if settings["VERBOSE"]:
         print(f"[{current_unix_timestamp()}] < {addr[0]}:{addr[1]} | TYPE: {msg_type}")
 
     msg_id = msg.get("ID")
@@ -56,7 +60,7 @@ def dispatch_message(msg: dict, addr: tuple, sock):
     elif msg_type == "UNFOLLOW":
         follow.handle(msg, addr)
     else:
-        if VERBOSE:
+        if settings["VERBOSE"]:
             print(f"⚠️  Unknown message type: {msg_type}")
     
 def receive_loop():
@@ -69,7 +73,7 @@ def receive_loop():
             # print("Parsed Message:\n", msg)
             dispatch_message(msg, addr, sock)
         except Exception as e:
-            if VERBOSE:
+            if settings["VERBOSE"]:
                 print(f"❌ Receive error: {e}")
 
 def cli_loop():
@@ -135,9 +139,7 @@ Available Commands:
                 revoke_token(token)
                 print("✅ Token revoked.")
             elif cmd == "verbose":
-                import config
-                config.VERBOSE = not config.VERBOSE
-                print(f"Verbose mode {'ON' if config.VERBOSE else 'OFF'}")
+                toggle_verbose()
             else:
                 print("❓ Unknown command. Try 'help'.")
         except KeyboardInterrupt:

@@ -1,5 +1,5 @@
 import socket
-from config import PORT, BUFFER_SIZE, BROADCAST_ADDRESS, VERBOSE
+from config import PORT, BUFFER_SIZE, BROADCAST_ADDRESS
 
 def create_socket() -> socket.socket:
     """Creates and binds a UDP socket to listen for messages."""

@@ -5,7 +5,10 @@ BUFFER_SIZE = 65535
 ENCODING = 'utf-8'
 MESSAGE_TERMINATOR = '\n\n'
 FIELD_SEPARATOR = ': '
-VERBOSE = True
+settings = {
+    "VERBOSE": True,
+    # ... other config options if needed
+}
 
 # Intervals
 PING_INTERVAL = 300
