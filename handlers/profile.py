@@ -135,6 +135,8 @@ def handle(msg: dict, addr: tuple):
 
     if settings["VERBOSE"]:
         print(f"\n{CYAN}📥 PROFILE received from {sender_user_id}{RESET}")
+        print(f"  {BLUE}TYPE:{RESET} {msg.get('TYPE', '')}")
+        print(f"  {BLUE}USER_ID:{RESET} {msg.get('USER_ID', '')}")
         print(f"  {BLUE}DISPLAY_NAME:{RESET} {msg.get('DISPLAY_NAME', '')}")
         print(f"  {BLUE}STATUS:{RESET} {msg.get('STATUS', '')}")
         print(f"  {BLUE}AVATAR_TYPE:{RESET} {msg.get('AVATAR_TYPE', '')}")

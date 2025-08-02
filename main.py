@@ -158,4 +158,5 @@ if __name__ == "__main__":
     print(f"Logging in as {username}@{local_profile['LOCAL_IP']}\n")
     threading.Thread(target=receive_loop, daemon=True).start()
     ping.start_auto_ping()
+    print("Please set up your profile first!")
     cli_loop()
