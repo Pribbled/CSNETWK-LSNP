@@ -113,8 +113,10 @@ def handle_post(msg: dict):
     content = msg.get("CONTENT")
     timestamp = msg.get("TIMESTAMP")
 
-    if not user or not content or not timestamp:
+    if not user or not content: #or not timestamp
         if settings["VERBOSE"]:
+            print(user)
+            print(content)
             print(f"{YELLOW}⚠️ Malformed POST received.{RESET}")
         return
 
@@ -170,6 +172,7 @@ def handle_like(msg: dict):
     preview = post_content if len(post_content) <= 30 else post_content[:30] + "..."
 
     if settings["VERBOSE"]:
+        print(post)
         print(f"{MAGENTA}🔔 {from_user} {action.lower()}d your post [{preview}]{RESET}")
     else:
         print(f"{MAGENTA}{from_user.split('@')[0]} {action.lower()}s your post [{preview}]{RESET}")

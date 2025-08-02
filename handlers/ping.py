@@ -9,7 +9,7 @@ def build_ping():
     return build_message({
         "TYPE": "PING",
         "USER_ID": local_profile["USER_ID"],
-        "NAME": local_profile.get("NAME", ""),
+        "DISPLAY_NAME": local_profile.get("NAME", ""),
         "STATUS": local_profile.get("STATUS", "")
     })
 
@@ -38,7 +38,7 @@ def handle(msg: dict, addr: tuple):
     fields = {
         "TYPE": "PROFILE",
         "USER_ID": local_profile["USER_ID"],
-        "NAME": local_profile.get("NAME", ""),
+        "DISPLAY_NAME": local_profile.get("NAME", ""),
         "STATUS": local_profile.get("STATUS", ""),
         "AVATAR_TYPE": local_profile.get("AVATAR_TYPE", "text/emoji"),
         "AVATAR_ENCODING": local_profile.get("AVATAR_ENCODING", "utf-8"),
@@ -49,7 +49,7 @@ def handle(msg: dict, addr: tuple):
     send_unicast(response, addr[0])
 
     if settings["VERBOSE"]:
-        print(f"📤 Responded to PING with PROFILE to {addr[0]}")
+        print(f"\n📤 Responded to PING with PROFILE to {addr[0]}\n")
 
 # Auto PING loop (daemon thread)
 def auto_ping_loop():

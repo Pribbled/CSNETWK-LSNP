@@ -2,9 +2,10 @@
 PORT = 50999
 BROADCAST_ADDRESS = '<broadcast>'
 BUFFER_SIZE = 65535
+MAX_IMAGE_SIZE = 8192
 ENCODING = 'utf-8'
 MESSAGE_TERMINATOR = '\n\n'
-FIELD_SEPARATOR = ': '
+SEPARATOR = ': '
 settings = {
     "VERBOSE": True,
 }
