@@ -1,3 +1,4 @@
+import time
 from message import build_message
 from socket_handler import send_udp
 from utils import (
@@ -5,7 +6,7 @@ from utils import (
     current_unix_timestamp,
     generate_token,
 )
-from state import posts, local_profile, follow_map, liked_posts
+from state import posts, local_profile, follow_map, liked_posts, peers
 from config import BROADCAST_ADDRESS, settings
 
 # ========== Colors ==========
@@ -111,7 +112,12 @@ def handle(msg: dict, addr: tuple):
 def handle_post(msg: dict):
     user = msg.get("USER_ID")
     content = msg.get("CONTENT")
-    timestamp = msg.get("TIMESTAMP")
+    ttl = msg.get("TTL")
+    message_id = msg.get("MESSAGE_ID")
+    token = msg.get("TOKEN")
+
+    # Inject timestamp at time of receipt
+    timestamp = int(time.time())
 
     if not user or not content: #or not timestamp
         if settings["VERBOSE"]:
@@ -127,13 +133,29 @@ def handle_post(msg: dict):
             print(f"{YELLOW}⚠️ Invalid TIMESTAMP format.{RESET}")
         return
 
-    posts[timestamp] = msg
+    posts[message_id] = {
+        "USER_ID": user,
+        "CONTENT": content,
+        "TTL": int(ttl),
+        "TIMESTAMP": timestamp,
+        "TOKEN": token,
+    }
     display = user.split("@")[0]
+ # Print post
+    name = peers.get(user, {}).get("DISPLAY_NAME", user)
+    avatar = peers.get(user, {}).get("AVATAR", "")
 
     if settings["VERBOSE"]:
-        print(f"{BLUE}📝 POST from {user}:{RESET} {content}")
+        print(f"\n{BLUE}[POST]{RESET} From: {user}")
+        print(f"{CYAN}DISPLAY_NAME:{RESET} {name}")
+        print(f"{CYAN}CONTENT:{RESET} {content}")
+        print(f"{CYAN}TTL:{RESET} {ttl}")
+        print(f"{CYAN}MESSAGE_ID:{RESET} {message_id}")
+        print(f"{CYAN}TOKEN:{RESET} {token}")
+        print(f"{CYAN}TIMESTAMP (injected):{RESET} {timestamp}")
     else:
-        print(f"{CYAN}{display}{RESET}: {content}")
+        display = f"{name}: {content}"
+        print(f"{avatar} {display}" if avatar else display)
 
 
 def handle_like(msg: dict):
