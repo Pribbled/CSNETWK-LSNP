@@ -100,7 +100,6 @@ def cli_loop():
             if cmd == "exit":
                 try:
                     sock = create_socket()
-                    # revoke_token(sock)
                     token.revoke_all_tokens_by_user(sock)
                 except Exception as e:
                     print(f"⚠️  Error sending REVOKE: {e}")
@@ -108,18 +107,22 @@ def cli_loop():
             elif cmd == "help":
                 print("""
 Available Commands:
-- profile     Send PROFILE update
-- post        Broadcast a POST
-- like        Like a POST
-- dm          Send a direct message
-- follow      Follow a user
-- file        Send a FILE_OFFER
-- group       Manage groups (create, join, leave)
-- game        Send a GAME_MOVE or GAME_INVITE
-- revoke      Revoke a token
-- unfollow    Unfollow a user
-- verbose     Toggle verbose mode
-- exit        Quit the program
+- profile           Send PROFILE update
+- post              Broadcast a POST
+- like              Like a POST
+- dm                Send a direct message
+- follow            Follow a user
+- file              Send a FILE_OFFER
+- group-create      Create a GROUP
+- group-update      Add or remove a GROUP member
+- group-msg         Send message to a GROUP
+- group-list        List GROUPs you belong to
+- group-members     List members in a GROUP
+- game              Send a GAME_MOVE or GAME_INVITE
+- revoke            Revoke a token
+- unfollow          Unfollow a user
+- verbose           Toggle verbose mode
+- exit              Quit the program
                 """)
             elif cmd == "profile":
                 profile.cli_send()
@@ -133,16 +136,16 @@ Available Commands:
                 ping.cli_send()
             elif cmd == "file":
                 cli.file_transfer_cli()
-            elif cmd == "group":
-                group.cli_send()
             elif cmd == "group-create":
                 group.cli_group_create()
-            elif cmd == "group-join":
-                group.cli_group_join()
+            elif cmd == "group-update":
+                group.cli_group_update()
             elif cmd == "group-msg":
                 group.cli_group_msg()
-            elif cmd == "group-leave":
-                group.cli_group_leave()
+            elif cmd == "group-list":
+                group.cli_group_list()
+            elif cmd == "group-members":
+                group.cli_group_members()
             elif cmd == "game":
                 game.cli_send()
             elif cmd == "game-invite":
@@ -175,10 +178,8 @@ Available Commands:
 
 if __name__ == "__main__":
     from state import local_profile
-    # from utils import get_local_ip  # if you modularize this later
 
     username = input("Enter your LSNP username: ").strip()
-    # local_profile["Name"] = username  # optional, if using as DISPLAY_NAME
     local_profile["USER_ID"] = f"{username}@{local_profile['LOCAL_IP']}"
 
     print(f"Logging in as {username}@{local_profile['LOCAL_IP']}\n")
