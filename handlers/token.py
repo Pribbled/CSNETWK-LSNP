@@ -123,32 +123,4 @@ def cli_revoke():
 
 # ========== Validation ==========
 
-def validate(token: str, expected_scope: str) -> bool:
-    if not token or '|' not in token:
-        return False
-
-    parts = token.split('|')
-    if len(parts) != 3:
-        return False
-
-    user_id, expiration, scope = parts
-
-    # print(f"[{user_id}]\nNow: {int(time.time())}\nExp: {expiration}\nScope: {scope}")
-
-    try:
-        expiration = int(expiration)
-    except ValueError:
-        print(ValueError)
-        return False
-
-    current_time = int(time.time())
-    if current_time > expiration:
-        print(current_time, " > ", expiration)
-        return False
-
-    if scope.strip().lower() != expected_scope.lower():
-        print(scope.strip().lower(), '!=', expected_scope)
-        return False
-
-    return True
 

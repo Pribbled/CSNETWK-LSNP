@@ -3,11 +3,11 @@ from socket_handler import send_unicast
 from utils import (
     generate_message_id,
     current_unix_timestamp,
+    validate_token,
     RED, GREEN, YELLOW, CYAN, BLUE, RESET
 )
 from state import local_profile, peers, follow_map
 from config import settings
-from handlers.token import validate
 
 # ========== RECEIVE ==========
 # ========== RECEIVE ==========
@@ -66,7 +66,7 @@ def cli_follow():
         return
 
     token = input("Enter your valid FOLLOW-scope token: ").strip()
-    if not validate(token, "FOLLOW"):
+    if not validate_token(token, "FOLLOW"):
         print(f"{RED}❌ Invalid or expired token.{RESET}")
         return
 
@@ -89,7 +89,7 @@ def cli_unfollow():
         return
 
     token = input("Enter your valid FOLLOW-scope token: ").strip()
-    if not validate(token, "FOLLOW"):
+    if not validate_token(token, "FOLLOW"):
         print(f"{RED}❌ Invalid or expired token.{RESET}")
         return
 

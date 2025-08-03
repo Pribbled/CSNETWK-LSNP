@@ -25,7 +25,7 @@ def current_unix_timestamp() -> int:
 def generate_message_id() -> str:
     return '%016x' % random.getrandbits(64)
 
-def generate_token(user_id: str, timestamp: int, ttl: int, scope: str) -> str:
+def generate_token(user_id: str, ttl: int, scope: str, timestamp: int = int(time.time())) -> str:
     expiry_time = timestamp + ttl
     return f"{user_id}|{expiry_time}|{scope}"
 
@@ -35,3 +35,34 @@ def generate_game_id() -> str:
 def parse_csv(s: str) -> list:
     return [x.strip() for x in s.split(',') if x.strip()]
 
+def hash_token(token):
+    return hashlib.sha256(token.encode()).hexdigest()
+
+def validate_token(token: str, expected_scope: str) -> bool:
+    if not token or '|' not in token:
+        return False
+
+    parts = token.split('|')
+    if len(parts) != 3:
+        return False
+
+    user_id, expiration, scope = parts
+
+    # print(f"[{user_id}]\nNow: {int(time.time())}\nExp: {expiration}\nScope: {scope}")
+
+    try:
+        expiration = int(expiration)
+    except ValueError:
+        print(ValueError)
+        return False
+
+    current_time = int(time.time())
+    if current_time > expiration:
+        print(current_time, " > ", expiration)
+        return False
+
+    if scope.strip().lower() != expected_scope.lower():
+        print(scope.strip().lower(), '!=', expected_scope)
+        return False
+
+    return True

@@ -9,12 +9,18 @@ from handlers import (
     post,
     ping,
     dm,
-    file_transfer,
     group,
     game,
     like,
     token,
     follow,
+)
+from file_transfer import cli
+from file_transfer.receiver import (
+    handle_file_offer, 
+    handle_file_chunk, 
+    handle_file_received, 
+    handle_file_accept
 )
 
 def log(msg: str):
@@ -47,8 +53,14 @@ def dispatch_message(msg: dict, addr: tuple, sock):
         dm.handle(msg, addr)
     elif msg_type == "PING":
         ping.handle(msg, addr)
-    elif msg_type.startswith("FILE"):
-        file_transfer.handle(msg, addr)
+    elif msg_type == "FILE_OFFER":
+        handle_file_offer(msg)
+    elif msg_type == "FILE_CHUNK":
+        handle_file_chunk(msg)
+    elif msg_type == "FILE_RECEIVED":
+        handle_file_received(msg)
+    elif msg_type == "FILE_ACCEPT":
+        handle_file_accept(msg)
     elif msg_type.startswith("GROUP"):
         group.handle(msg, addr)
     elif msg_type.startswith("GAME"):
@@ -110,7 +122,7 @@ Available Commands:
             elif cmd == "ping":
                 ping.cli_send()
             elif cmd == "file":
-                file_transfer.cli_send()
+                cli.file_transfer_cli()
             elif cmd == "group":
                 group.cli_send()
             elif cmd == "group-create":
