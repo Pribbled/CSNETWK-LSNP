@@ -6,6 +6,7 @@ from utils import generate_token
 from state import local_profile, get_peer_address
 from message import build_message
 from socket_handler import send_unicast
+from file_transfer.file_session import register_session, get_session, remove_session
 
 CHUNK_SIZE = 4096 
 
@@ -40,6 +41,15 @@ def send_file_offer(to_user_id, file_path, description=""):
     if not peer_ip:
         print(f"❌ Could not find IP for {to_user_id}")
         return
+    
+    # ✅ Register session here so it can be accessed on accept
+    total_chunks = (filesize + CHUNK_SIZE - 1) // CHUNK_SIZE
+    register_session(file_id, {
+        "filename": file_path,
+        "recipient": to_user_id,
+        "total_chunks": total_chunks,
+        "token": token,
+    })
 
     send_unicast(build_message(offer_msg), peer_ip)
     return file_id  # Needed for follow-up chunk sending
@@ -121,6 +131,7 @@ def start_sending_chunks(file_id: str, to_user_id: str, filepath: str):
                 time.sleep(0.05)  # slight delay to prevent flooding
 
         print(f"✅ All chunks sent to {to_user_id} for FILEID {file_id}")
+        remove_session(file_id)
 
     except Exception as e:
         print(f"❌ Error while sending chunks: {e}")
@@ -129,5 +140,12 @@ def handle_file_accept(message: dict):
     file_id = message.get("FILEID")
     to_user = message.get("FROM")
     print(f"✅ File offer accepted by {to_user} (FILEID: {file_id})")
-    # Start sending chunks now...
-    start_sending_chunks(file_id, to_user)
+
+    session = get_session(file_id)
+    if not session:
+        print(f"⚠️ No matching file transfer session found for FILEID: {file_id}")
+        return
+
+    # Use the registered session values
+    filepath = session["filename"]
+    start_sending_chunks(file_id, to_user, filepath)

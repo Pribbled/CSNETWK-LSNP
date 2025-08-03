@@ -7,6 +7,8 @@ from message import build_message
 from socket_handler import send_unicast
 from config import settings
 from file_transfer.sender import start_sending_chunks
+from file_transfer.file_session import get_session, remove_session
+
 
 RECEIVED_DIR = "downloads"
 os.makedirs(RECEIVED_DIR, exist_ok=True)
@@ -142,12 +144,16 @@ def send_file_received(to_user_id: str, file_id: str):
     }
 
     sender_ip = get_peer_address(to_user_id)
+    session = get_session(file_id)
     if sender_ip:
+        if session:
+            remove_session(file_id)
         send_unicast(build_message(ack), sender_ip)
 
 def handle_file_accept(message: dict):
     file_id = message.get("FILEID")
     to_user = message.get("FROM")
+    session = get_session(file_id)
     print(f"[VERBOSE] ✅ File offer accepted by {to_user} (FILEID: {file_id})")
 
     # Reconstruct original file path based on FILEID
@@ -155,5 +161,5 @@ def handle_file_accept(message: dict):
         original_filename = file_transfers[file_id]["filename"]
         original_path = os.path.join(os.getcwd(), "downloads", original_filename)
         start_sending_chunks(file_id, to_user, original_path)
-    else:
+    if not session:
         print("⚠️ No matching file transfer session found.")
