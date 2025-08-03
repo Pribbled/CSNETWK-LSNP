@@ -6,6 +6,7 @@ from utils import validate_token
 from message import build_message
 from socket_handler import send_unicast
 from config import settings
+from file_transfer.sender import start_sending_chunks
 
 RECEIVED_DIR = "downloads"
 os.makedirs(RECEIVED_DIR, exist_ok=True)
@@ -130,19 +131,7 @@ def handle_file_received(message: dict, verbose=False):
     if file_id and sender and status:
         print(f"[VERBOSE] ✅ {sender} reported {status} for file ID {file_id}")
 
-def handle_file_accept(message: dict):
-    file_id = message.get("FILEID")
-    to_user = message.get("FROM")
-    print(f"[VERBOSE] ✅ File offer accepted by {to_user} (FILEID: {file_id})")
-    # Start sending chunks now...
-    handle_file_chunk(message)
-
 def send_file_received(to_user_id: str, file_id: str):
-    from state import local_profile
-    from message import build_message
-    from socket_handler import send_unicast
-    from utils import get_peer_address
-
     ack = {
         "TYPE": "FILE_RECEIVED",
         "FROM": local_profile["USER_ID"],
@@ -156,3 +145,15 @@ def send_file_received(to_user_id: str, file_id: str):
     if sender_ip:
         send_unicast(build_message(ack), sender_ip)
 
+def handle_file_accept(message: dict):
+    file_id = message.get("FILEID")
+    to_user = message.get("FROM")
+    print(f"[VERBOSE] ✅ File offer accepted by {to_user} (FILEID: {file_id})")
+
+    # Reconstruct original file path based on FILEID
+    if file_id in file_transfers:
+        original_filename = file_transfers[file_id]["filename"]
+        original_path = os.path.join(os.getcwd(), "downloads", original_filename)
+        start_sending_chunks(file_id, to_user, original_path)
+    else:
+        print("⚠️ No matching file transfer session found.")

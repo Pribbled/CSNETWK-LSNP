@@ -1,6 +1,7 @@
 import random
 import time
 import socket
+import hashlib
 
 RED = "\033[91m"
 GREEN = "\033[92m"
