@@ -6,7 +6,7 @@ from utils import (
     validate_token,
     RED, GREEN, YELLOW, CYAN, BLUE, RESET
 )
-from state import local_profile, peers, follow_map
+from state import local_profile, peers, follow_map, revoked_tokens
 from config import settings
 
 # ========== RECEIVE ==========
@@ -25,6 +25,11 @@ def handle(msg: dict, addr: tuple):
     if not validate(token, "FOLLOW"):
         print(f"{YELLOW}⚠️ Invalid or expired token from {from_id}. Ignoring {msg_type}.{RESET}")
         return
+    
+    if token in revoked_tokens:
+        print("❌ Cannot send, token has been revoked.")
+        return
+
 
     if msg_type == "FOLLOW":
         if from_id not in follow_map:

@@ -108,7 +108,7 @@ def handle_file_chunk(message: dict):
         transfer["expected"] = total_chunks
 
     received = len(chunks)
-    print(f"📥 Received chunk {chunk_index + 1}/{total_chunks} for {transfer.get('filename')}")
+    print(f"📥 Received chunk {chunk_index}/{total_chunks} for {transfer.get('filename')}")
 
     if received == total_chunks and all(i in chunks for i in range(total_chunks)):
         chunks_ordered = [chunks[i] for i in range(total_chunks)]
@@ -122,7 +122,7 @@ def handle_file_chunk(message: dict):
         send_file_received(sender, file_id)
 
 def handle_file_received(message: dict, verbose=False):
-    # RFC says do nothing unless in verbose mode
+    # do nothing unless in verbose mode
     if not settings["VERBOSE"]:
         return
 

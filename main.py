@@ -13,6 +13,7 @@ from handlers import (
     game,
     like,
     token,
+    revoke,
     follow,
 )
 from file_transfer import cli
@@ -22,6 +23,7 @@ from file_transfer.receiver import (
     handle_file_received, 
     handle_file_accept
 )
+from handlers.token import revoke_token, revoke_all_tokens_by_user
 
 def log(msg: str):
     if settings["VERBOSE"]:
@@ -67,6 +69,8 @@ def dispatch_message(msg: dict, addr: tuple, sock):
         game.handle(msg, addr)
     elif msg_type == "TOKEN":
         token.handle(msg, addr)
+    elif msg_type == "REVOKE":
+        revoke.handle(msg, addr)
     elif msg_type == "FOLLOW":
         follow.handle(msg, addr)
     elif msg_type == "UNFOLLOW":
@@ -94,6 +98,12 @@ def cli_loop():
         try:
             cmd = input("LSNP> ").strip()
             if cmd == "exit":
+                try:
+                    sock = create_socket()
+                    # revoke_token(sock)
+                    token.revoke_all_tokens_by_user(sock)
+                except Exception as e:
+                    print(f"⚠️  Error sending REVOKE: {e}")
                 break
             elif cmd == "help":
                 print("""
@@ -146,15 +156,19 @@ Available Commands:
             elif cmd == "unfollow":
                 follow.cli_unfollow()
             elif cmd == "revoke":
-                token = input("Token to revoke: ").strip()
-                from token import revoke_token
-                revoke_token(token)
+                token_str = input("Token to revoke: ").strip()
+                revoke_token(token_str)
                 print("✅ Token revoked.")
             elif cmd == "verbose":
                 toggle_verbose()
             else:
                 print("❓ Unknown command. Try 'help'.")
         except KeyboardInterrupt:
+            try:
+                sock = create_socket()
+                revoke_all_tokens_by_user(sock)
+            except Exception as e:
+                print(f"⚠️  Error sending REVOKE: {e}")
             break
         except Exception as e:
             print(f"❌ Error: {e}")

@@ -31,6 +31,10 @@ def handle(msg: dict, addr: tuple):
         if settings["VERBOSE"]:
             print(f"{RED}❌ Rejected DM: invalid or revoked token.{RESET}")
         return
+    
+    if token in revoked_tokens:
+        print("❌ Cannot send, token has been revoked.")
+        return
 
     if token in tokens:
         expiry = tokens[token]["EXPIRES_AT"]
