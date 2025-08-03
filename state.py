@@ -24,7 +24,7 @@ tokens = {}  # {token_string: {"EXPIRES_AT": 1234567890, "SCOPE": "DM,..."}}
 revoked_tokens = set()
 dm_history = []
 
-follow_map = defaultdict(set)  # USER_ID → set of followers
+follow_map = defaultdict(dict)  # USER_ID → set of followers
 group_map = defaultdict(dict)  # GROUP_ID → {group_name, members}
 
 seen_message_ids = set()

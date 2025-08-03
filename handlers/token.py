@@ -1,3 +1,4 @@
+import time
 from message import build_message
 from socket_handler import send_unicast
 from utils import generate_message_id, current_unix_timestamp
@@ -121,12 +122,33 @@ def cli_revoke():
     print(f"❌ TOKEN_REVOKE broadcasted.")
 
 # ========== Validation ==========
-def validate(token: str, required_scope: str) -> bool:
-    if token in revoked_tokens:
+
+def validate(token: str, expected_scope: str) -> bool:
+    if not token or '|' not in token:
         return False
-    if token not in tokens:
+
+    parts = token.split('|')
+    if len(parts) != 3:
         return False
-    info = tokens[token]
-    if current_unix_timestamp() > info["EXPIRES_AT"]:
+
+    user_id, expiration, scope = parts
+
+    # print(f"[{user_id}]\nNow: {int(time.time())}\nExp: {expiration}\nScope: {scope}")
+
+    try:
+        expiration = int(expiration)
+    except ValueError:
+        print(ValueError)
         return False
-    return required_scope.upper() in info["SCOPE"].upper().split(",")
+
+    current_time = int(time.time())
+    if current_time > expiration:
+        print(current_time, " > ", expiration)
+        return False
+
+    if scope.strip().lower() != expected_scope.lower():
+        print(scope.strip().lower(), '!=', expected_scope)
+        return False
+
+    return True
+

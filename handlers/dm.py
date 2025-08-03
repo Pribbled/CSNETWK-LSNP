@@ -1,15 +1,11 @@
 from message import build_message
 from socket_handler import send_unicast
-from utils import generate_message_id, current_unix_timestamp, generate_token
+from utils import (
+  generate_message_id, current_unix_timestamp, generate_token,
+  RED, GREEN, YELLOW, CYAN, RESET
+)
 from state import peers, tokens, revoked_tokens, dm_history, local_profile, get_peer_address
 from config import settings
-
-# ========== Color Constants ==========
-RED = "\033[91m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-CYAN = "\033[96m"
-RESET = "\033[0m"
 
 # ========== Receive ==========
 def handle(msg: dict, addr: tuple):

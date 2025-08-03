@@ -1,76 +1,106 @@
 from message import build_message
 from socket_handler import send_unicast
-from utils import generate_message_id, current_unix_timestamp
+from utils import (
+    generate_message_id,
+    current_unix_timestamp,
+    RED, GREEN, YELLOW, CYAN, BLUE, RESET
+)
 from state import local_profile, peers, follow_map
+from config import settings
 from handlers.token import validate
 
+# ========== RECEIVE ==========
 # ========== RECEIVE ==========
 def handle(msg: dict, addr: tuple):
     msg_type = msg.get("TYPE", "").upper()
     from_id = msg.get("FROM")
     to_id = msg.get("TO")
     token = msg.get("TOKEN")
+    timestamp = msg.get("TIMESTAMP")
+    message_id = msg.get("MESSAGE_ID")
 
-    # Only accept messages for self
-    if to_id != local_profile.USER_ID or not from_id or not token:
+    if to_id != local_profile["USER_ID"] or not from_id or not token or not timestamp:
         return
 
     if not validate(token, "FOLLOW"):
-        print(f"⚠️ Invalid or expired token from {from_id}. Ignoring {msg_type}.")
+        print(f"{YELLOW}⚠️ Invalid or expired token from {from_id}. Ignoring {msg_type}.{RESET}")
         return
 
     if msg_type == "FOLLOW":
         if from_id not in follow_map:
             follow_map[from_id] = {}
-        print(f"👤 User {from_id} has followed you.")
+
+        if settings["VERBOSE"]:
+            print(f"""{CYAN}[{timestamp}] < {addr[0]}:{addr[1]}
+{BLUE}TYPE:{RESET} FOLLOW
+{BLUE}MESSAGE_ID:{RESET} {message_id}
+{BLUE}FROM:{RESET} {from_id}
+{BLUE}TO:{RESET} {to_id}
+{BLUE}TIMESTAMP:{RESET} {timestamp}
+{BLUE}TOKEN: {token}{RESET}\n""")
+            print(f"User {from_id.split('@')[0]} has followed you")
+        else:
+            print(f"User {from_id.split('@')[0]} has followed you")
+
     elif msg_type == "UNFOLLOW":
         if from_id in follow_map:
             del follow_map[from_id]
-        print(f"👤 User {from_id} has unfollowed you.")
+
+        if settings["VERBOSE"]:
+            print(f"""{CYAN}[{timestamp}] < {addr[0]}:{addr[1]}
+{BLUE}TYPE:{RESET} UNFOLLOW
+{BLUE}MESSAGE_ID:{RESET} {message_id}
+{BLUE}FROM:{RESET} {from_id}
+{BLUE}TO:{RESET} {to_id}
+{BLUE}TIMESTAMP:{RESET} {timestamp}
+{BLUE}TOKEN: {token}{RESET}\n""")
+            print(f"User {from_id.split('@')[0]} has unfollowed you")
+        else:
+            print(f"User {from_id.split('@')[0]} has unfollowed you")
 
 # ========== CLI ==========
 def cli_follow():
     target = input("Enter USER_ID to follow: ").strip()
     if target not in peers:
-        print("❌ User not known.")
+        print(f"{RED}❌ User not known.{RESET}")
         return
 
     token = input("Enter your valid FOLLOW-scope token: ").strip()
     if not validate(token, "FOLLOW"):
-        print("❌ Invalid or expired token.")
+        print(f"{RED}❌ Invalid or expired token.{RESET}")
         return
 
     msg = build_message({
         "TYPE": "FOLLOW",
-        "FROM": local_profile.USER_ID,
+        "MESSAGE_ID": generate_message_id(),
+        "FROM": local_profile["USER_ID"],
         "TO": target,
         "TIMESTAMP": str(current_unix_timestamp()),
-        "MESSAGE_ID": generate_message_id(),
         "TOKEN": token
     })
 
     send_unicast(msg, peers[target]["ADDRESS"])
-    print(f"✅ Follow request sent to {target}")
+    print(f"{GREEN}✅ Follow request sent to {target}{RESET}")
 
 def cli_unfollow():
     target = input("Enter USER_ID to unfollow: ").strip()
     if target not in peers:
-        print("❌ User not known.")
+        print(f"{RED}❌ User not known.{RESET}")
         return
 
     token = input("Enter your valid FOLLOW-scope token: ").strip()
     if not validate(token, "FOLLOW"):
-        print("❌ Invalid or expired token.")
+        print(f"{RED}❌ Invalid or expired token.{RESET}")
         return
 
     msg = build_message({
         "TYPE": "UNFOLLOW",
-        "FROM": local_profile.USER_ID,
+        "MESSAGE_ID": generate_message_id(),
+        "FROM": local_profile["USER_ID"],
         "TO": target,
         "TIMESTAMP": str(current_unix_timestamp()),
-        "MESSAGE_ID": generate_message_id(),
         "TOKEN": token
     })
 
     send_unicast(msg, peers[target]["ADDRESS"])
-    print(f"✅ Unfollow request sent to {target}")
+    print(f"{GREEN}✅ Unfollow request sent to {target}{RESET}")
