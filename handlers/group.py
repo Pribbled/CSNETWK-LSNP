@@ -107,7 +107,7 @@ def cli_group_update():
     remove = input("User(s) to remove (comma-separated): ").strip()
     timestamp = current_unix_timestamp()
     ttl = 3600
-    token = generate_token(local_profile["USER_ID"], timestamp, ttl, "group")
+    token = generate_token(local_profile["USER_ID"], "group", ttl, timestamp)
 
     message = build_message({
         "TYPE": "GROUP_UPDATE",
@@ -120,7 +120,12 @@ def cli_group_update():
         "MESSAGE_ID": generate_message_id(),
     })
 
-    send_udp(message, BROADCAST_ADDRESS)
+    for user_id in group_map[group_id]["members"]:
+        if user_id == local_profile["USER_ID"]:
+            continue
+        addr = peers.get(user_id, {}).get("ADDRESS")
+        if addr:
+            send_unicast(message, addr)
 
 def cli_group_msg():
     group_name = input("Group Name to message: ").strip()

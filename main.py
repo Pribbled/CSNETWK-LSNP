@@ -63,7 +63,7 @@ def dispatch_message(msg: dict, addr: tuple, sock):
         handle_file_received(msg)
     elif msg_type == "FILE_ACCEPT":
         handle_file_accept(msg)
-    elif msg_type.startswith("GROUP"):
+    elif msg_type in ["GROUP_CREATE", "GROUP_UPDATE", "GROUP_MESSAGE"]:
         group.handle(msg, addr)
     elif msg_type.startswith("GAME"):
         game.handle(msg, addr)
@@ -122,7 +122,11 @@ Available Commands:
 - dm          Send a direct message
 - follow      Follow a user
 - file        Send a FILE_OFFER
-- group       Manage groups (create, join, leave)
+- group-create      Create a GROUP
+- group-update      Add or remove a GROUP member
+- group-msg         Send message to a GROUP
+- group-list        List GROUPs you belong to
+- group-members     List members in a GROUP
 - game        Play Tic Tac Toe (invite, move, quit)
 - revoke      Revoke a token
 - unfollow    Unfollow a user
@@ -141,16 +145,16 @@ Available Commands:
                 ping.cli_send()
             elif cmd == "file":
                 cli.file_transfer_cli()
-            elif cmd == "group":
-                group.cli_send()
             elif cmd == "group-create":
                 group.cli_group_create()
-            elif cmd == "group-join":
-                group.cli_group_join()
-            elif cmd == "group-msg":
+            elif cmd == "group-update":
+                group.cli_group_update()
+            elif cmd == "group-message":
                 group.cli_group_msg()
-            elif cmd == "group-leave":
-                group.cli_group_leave()
+            elif cmd == "group-list":
+                group.cli_group_list()
+            elif cmd == "group-members":
+                group.cli_group_members()
             elif cmd == "game":
                 print("""
                 Game commands:
