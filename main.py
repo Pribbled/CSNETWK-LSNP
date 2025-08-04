@@ -5,6 +5,7 @@ from state import seen_message_ids
 from utils import current_unix_timestamp
 from config import settings
 from handlers import (
+    ack,
     profile,
     post,
     ping,
@@ -45,7 +46,9 @@ def dispatch_message(msg: dict, addr: tuple, sock):
     if msg_id:
         seen_message_ids.add(msg_id)
 
-    if msg_type == "PROFILE":
+    if msg_type == "ACK":
+        ack.handle(msg, addr)
+    elif msg_type == "PROFILE":
         profile.handle(msg, addr)
     elif msg_type == "POST":
         post.handle(msg, addr)

@@ -1,11 +1,12 @@
 from message import build_message
 from socket_handler import send_unicast
 from utils import (
-  generate_message_id, current_unix_timestamp, generate_token,
-  RED, GREEN, YELLOW, CYAN, RESET
+    generate_message_id, current_unix_timestamp, generate_token,
+    RED, GREEN, YELLOW, CYAN, RESET
 )
 from state import peers, tokens, revoked_tokens, dm_history, local_profile, get_peer_address
 from config import settings
+from handlers.ack import send_ack  # ✅ Added
 
 # ========== Receive ==========
 def handle(msg: dict, addr: tuple):
@@ -31,10 +32,6 @@ def handle(msg: dict, addr: tuple):
         if settings["VERBOSE"]:
             print(f"{RED}❌ Rejected DM: invalid or revoked token.{RESET}")
         return
-    
-    if token in revoked_tokens:
-        print("❌ Cannot send, token has been revoked.")
-        return
 
     if token in tokens:
         expiry = tokens[token]["EXPIRES_AT"]
@@ -48,6 +45,7 @@ def handle(msg: dict, addr: tuple):
     timestamp = msg["TIMESTAMP"]
     display_name = peers.get(sender, {}).get("NAME", sender)
 
+    # ✅ Print DM
     if settings["VERBOSE"]:
         print(f"\n{CYAN}💬 DM received from {sender} to {recipient}:{RESET} {content}")
     else:
@@ -59,6 +57,9 @@ def handle(msg: dict, addr: tuple):
         "CONTENT": content,
         "TIMESTAMP": timestamp
     })
+
+    # ✅ Send ACK
+    send_ack(sender, msg["MESSAGE_ID"])
 
 
 # ========== CLI Send ==========
@@ -74,9 +75,8 @@ def cli_send():
         print(f" - {uid} @ {ip} (name: {name})")
 
     input_uid = input("Recipient USER ID: ").strip()
-
-    # Match USER_ID by username (before @)
     input_username = input_uid.split("@")[0].lower()
+
     matched_uid = None
     for uid in peers:
         peer_username = uid.split("@")[0].lower()
