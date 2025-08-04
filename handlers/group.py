@@ -81,7 +81,7 @@ def cli_group_create():
     group_id = auto_generate_group_id()
     timestamp = current_unix_timestamp()
     ttl = 3600
-    token = generate_token(local_profile["USER_ID"], timestamp, ttl, "group")
+    token = generate_token(local_profile["USER_ID"], "group", ttl, timestamp)
 
     message = build_message({
         "TYPE": "GROUP_CREATE",
@@ -137,7 +137,7 @@ def cli_group_msg():
     content = input("Message: ").strip()
     timestamp = current_unix_timestamp()
     ttl = 3600
-    token = generate_token(local_profile["USER_ID"], timestamp, ttl, "group")
+    token = generate_token(local_profile["USER_ID"], "group", ttl, timestamp)
 
     members = group_map[group_id].get("members", [])
     for user_id in members:
