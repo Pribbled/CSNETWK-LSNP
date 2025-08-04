@@ -67,7 +67,7 @@ def handle(msg: dict, addr: tuple):
         if game_id in games:
             del games[game_id]
 
-# ----- Helpers -----
+#Helpers (ack, win status, board printing)
 
 def send_ack(message_id, addr):
     ack_msg = {
@@ -96,7 +96,7 @@ def display_board(board):
             print("---------")
     print("")
 
-# ----- CLI -----
+#CLI Functions
 
 def cli_game_invite():
     target_id = input("Opponent USER_ID: ").strip()
@@ -210,7 +210,7 @@ def send_result(game_id, target, result, line, symbol):
     }
     send_unicast(build_message(msg), peers[target]["ADDRESS"])
 
-# ----- Retry Logic -----
+#Retry (3 acks)
 
 def retry_send(msg_str, target_id, msg_id):
     addr = peers[target_id]["ADDRESS"]
