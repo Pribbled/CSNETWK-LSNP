@@ -93,7 +93,7 @@ def send_result(result_str):
 
 def cli_game_invite():
     to_id = input("Send invite to USER_ID: ").strip()
-    token = generate_token(local_profile["USER_ID"], ttl=3600, scope="game")
+    token = generate_token(local_profile["USER_ID"], scope="game")
 
     msg = {
         "TYPE": "GAME_INVITE",

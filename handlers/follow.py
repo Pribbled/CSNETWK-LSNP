@@ -22,7 +22,7 @@ def handle(msg: dict, addr: tuple):
     if to_id != local_profile["USER_ID"] or not from_id or not token or not timestamp:
         return
 
-    if not validate(token, "FOLLOW"):
+    if not validate_token(token, "FOLLOW"):
         print(f"{YELLOW}⚠️ Invalid or expired token from {from_id}. Ignoring {msg_type}.{RESET}")
         return
     

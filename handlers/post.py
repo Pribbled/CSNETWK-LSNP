@@ -25,7 +25,7 @@ def cli_send():
 
     user_id = local_profile["USER_ID"]
     timestamp = current_unix_timestamp()
-    token = generate_token(user_id, ttl, "broadcast", timestamp)
+    token = generate_token(user_id, "broadcast", ttl, timestamp)
 
     message = {
         "TYPE": "POST",
@@ -71,7 +71,7 @@ def send_like():
     sender = local_profile["USER_ID"]
     timestamp = current_unix_timestamp()
     ttl = 3600
-    token = generate_token(sender, ttl, "broadcast", timestamp)
+    token = generate_token(sender, "broadcast", ttl, timestamp)
 
     if action == "LIKE" and post_timestamp in liked_posts:
         print(f"{YELLOW}⚠️ Already liked.{RESET}")

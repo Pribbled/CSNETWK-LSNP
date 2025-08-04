@@ -22,7 +22,7 @@ def send_file_offer(to_user_id, file_path, description=""):
 
     timestamp = int(time.time())
     ttl = 3600
-    token = generate_token(user_id=local_profile["USER_ID"], ttl=ttl, scope="file", timestamp=timestamp)
+    token = generate_token(user_id=local_profile["USER_ID"], scope="file", ttl=ttl, timestamp=timestamp)
 
     offer_msg = {
         "TYPE": "FILE_OFFER",
@@ -60,7 +60,7 @@ def send_file_chunks(to_user_id, file_path, file_id):
     timestamp = int(time.time())
     ttl = 3600  # or any value you want
     print("sending files from ", local_profile["USER_ID"], " to ", to_user_id)
-    token = generate_token(user_id=local_profile["USER_ID"], ttl=3600, scope="file", timestamp=timestamp)
+    token = generate_token(user_id=local_profile["USER_ID"], scope="file", ttl=ttl, timestamp=timestamp)
     with open(file_path, "rb") as f:
         data = f.read()
 
@@ -97,12 +97,7 @@ def start_sending_chunks(file_id: str, to_user_id: str, filepath: str):
     try:
         filesize = os.path.getsize(filepath)
         total_chunks = (filesize + CHUNK_SIZE - 1) // CHUNK_SIZE
-        token = generate_token(
-            user_id=local_profile["USER_ID"],
-            timestamp=int(time.time()),
-            ttl=3600,
-            scope="file"
-        )
+        token = generate_token(user_id=local_profile["USER_ID"], scope="file")
 
         peer_ip = get_peer_address(to_user_id)
 
