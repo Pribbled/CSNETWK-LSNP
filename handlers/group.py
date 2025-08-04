@@ -10,6 +10,7 @@ from utils import (
 )
 from config import BROADCAST_ADDRESS, DEFAULT_TTL
 import random
+from handlers import ack
 
 def handle(msg, addr):
     msg_type = msg.get("TYPE", "").upper()
@@ -30,7 +31,7 @@ def handle(msg, addr):
         if not validate_token(msg.get("TOKEN", ""), "group"):
             print("❌ Invalid token for GROUP_MESSAGE")
             return
-        handle_group_message(msg)
+        handle_group_message(msg, addr)
 
 def handle_group_create(msg):
     group_id = msg["GROUP_ID"]
@@ -70,6 +71,9 @@ def handle_group_message(msg, addr=None):
     sender = msg["FROM"]
     content = msg["CONTENT"]
     print(f"{sender} sent “{content}”")
+
+    if addr and "MESSAGE_ID" in msg:
+        ack.send_ack(sender, msg["MESSAGE_ID"])
 
 def auto_generate_group_id():
     return f"grp{random.randint(1000, 9999)}"
