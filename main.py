@@ -142,7 +142,30 @@ Available Commands:
             elif cmd == "file":
                 cli.file_transfer_cli()
             elif cmd == "group":
-                group.cli_send()
+                print("""
+                                Group Commands:
+                                - create    Create a Group
+                                - update    Update a Group (add/remove members)
+                                - message   Send a message to your group
+                                - list      List groups you belong to
+                                - members   Show group members
+                                - leave     Leave a group
+                                                    """)
+                sub_cmd = input("group> ").strip()
+                if sub_cmd == "create":
+                    group.cli_group_create()
+                elif sub_cmd == "update":
+                    group.cli_group_update()
+                elif sub_cmd == "message":
+                    group.cli_group_msg()
+                elif sub_cmd == "list":
+                    group.cli_group_list()
+                elif sub_cmd == "members":
+                    group.cli_group_members()
+                elif sub_cmd == "leave":
+                    group.cli_group_leave()
+                else:
+                    print("❓ Unknown group command.")
             elif cmd == "group-create":
                 group.cli_group_create()
             elif cmd == "group-join":
