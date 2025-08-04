@@ -1,3 +1,4 @@
+
 from message import build_message
 from socket_handler import send_udp
 from utils import (
@@ -5,9 +6,7 @@ from utils import (
     current_unix_timestamp,
     generate_token,
 )
-from state import (
-    posts, local_profile, follow_map, liked_posts, peers, revoked_tokens
-)
+from state import posts, local_profile, follow_map, liked_posts, peers
 from config import BROADCAST_ADDRESS, settings
 
 # ========== Colors ==========
@@ -75,12 +74,7 @@ def cli_send():
     sender = local_profile["USER_ID"]
     timestamp = current_unix_timestamp()
     ttl = 3600
-    token = generate_token(sender, "broadcast", ttl, timestamp)
-    
-    if token in revoked_tokens:
-        if settings["VERBOSE"]:
-            print(f"🚫 Ignoring message with revoked token: {token}")
-        return
+    token = generate_token(sender, timestamp, ttl, "broadcast")
 
     if action == "LIKE" and post_timestamp in liked_posts:
         print(f"{YELLOW}⚠️ Already liked.{RESET}")
