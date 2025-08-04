@@ -63,18 +63,18 @@ def dispatch_message(msg: dict, addr: tuple, sock):
         handle_file_received(msg)
     elif msg_type == "FILE_ACCEPT":
         handle_file_accept(msg)
-    elif msg_type in ["GROUP_CREATE", "GROUP_UPDATE", "GROUP_MESSAGE"]:
+    elif msg_type.startswith("GROUP"):
         group.handle(msg, addr)
     elif msg_type.startswith("GAME"):
         game.handle(msg, addr)
-    elif msg_type == "GAME_INVITE":
+    elif msg_type == "TICTACTOE_INVITE":
         game.handle_invite(msg, addr)
-    elif msg_type == "GAME_MOVE":
+    elif msg_type == "TICTACTOE_MOVE":
         game.handle_move(msg, addr)
-    elif msg_type == "GAME_RESULT":
+    elif msg_type == "TICTACTOE_RESULT":
         game.handle_result(msg, addr)
-    # elif msg_type == "GAME_QUIT":
-    #     handle_game_quit(msg, addr)
+     #elif msg_type == "GAME_QUIT":
+        #handle_game_quit(msg, addr)
     elif msg_type == "TOKEN":
         token.handle(msg, addr)
     elif msg_type == "REVOKE":
@@ -122,11 +122,7 @@ Available Commands:
 - dm          Send a direct message
 - follow      Follow a user
 - file        Send a FILE_OFFER
-- group-create      Create a GROUP
-- group-update      Add or remove a GROUP member
-- group-msg         Send message to a GROUP
-- group-list        List GROUPs you belong to
-- group-members     List members in a GROUP
+- group       Manage groups (create, join, leave)
 - game        Play Tic Tac Toe (invite, move, quit)
 - revoke      Revoke a token
 - unfollow    Unfollow a user
@@ -145,16 +141,16 @@ Available Commands:
                 ping.cli_send()
             elif cmd == "file":
                 cli.file_transfer_cli()
+            elif cmd == "group":
+                group.cli_send()
             elif cmd == "group-create":
                 group.cli_group_create()
-            elif cmd == "group-update":
-                group.cli_group_update()
-            elif cmd == "group-message":
+            elif cmd == "group-join":
+                group.cli_group_join()
+            elif cmd == "group-msg":
                 group.cli_group_msg()
-            elif cmd == "group-list":
-                group.cli_group_list()
-            elif cmd == "group-members":
-                group.cli_group_members()
+            elif cmd == "group-leave":
+                group.cli_group_leave()
             elif cmd == "game":
                 print("""
                 Game commands:
