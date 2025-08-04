@@ -1,111 +1,170 @@
 from message import build_message
 from socket_handler import send_udp, send_unicast
-from state import group_map, peers
-from utils import generate_message_id, current_unix_timestamp
-from state import local_profile
+from state import group_map, local_profile, peers
+from utils import (
+    current_unix_timestamp,
+    generate_message_id,
+    parse_csv,
+    validate_token,
+    generate_token,
+)
+from config import BROADCAST_ADDRESS, DEFAULT_TTL
+import random
 
-# ========== RECEIVE ==========
-def handle(msg: dict, addr: tuple):
+def handle(msg, addr):
     msg_type = msg.get("TYPE", "").upper()
-    group_id = msg.get("GROUP")
-    user = msg.get("USER")
-    content = msg.get("CONTENT", "")
-    time = msg.get("TIME")
 
     if msg_type == "GROUP_CREATE":
-        if group_id not in group_map:
-            group_map[group_id] = {"members": set()}
-        group_map[group_id]["members"].add(user)
-        print(f"👥 Group created: {group_id} by {user}")
+        if not validate_token(msg.get("TOKEN", ""), "group"):
+            print("❌ Invalid token for GROUP_CREATE")
+            return
+        handle_group_create(msg)
 
-    elif msg_type == "GROUP_JOIN":
-        if group_id not in group_map:
-            group_map[group_id] = {"members": set()}
-        group_map[group_id]["members"].add(user)
-        print(f"➕ {user} joined group {group_id}")
+    elif msg_type == "GROUP_UPDATE":
+        if not validate_token(msg.get("TOKEN", ""), "group"):
+            print("❌ Invalid token for GROUP_UPDATE")
+            return
+        handle_group_update(msg)
 
-    elif msg_type == "GROUP_MSG":
-        if group_id in group_map and user in group_map[group_id]["members"]:
-            print(f"💬 [{group_id}] {user}: {content}")
-        else:
-            print(f"⚠️ Message from non-member {user} in group {group_id} ignored.")
+    elif msg_type == "GROUP_MESSAGE":
+        if not validate_token(msg.get("TOKEN", ""), "group"):
+            print("❌ Invalid token for GROUP_MESSAGE")
+            return
+        handle_group_message(msg)
 
-    elif msg_type == "GROUP_LEAVE":
-        if group_id in group_map and user in group_map[group_id]["members"]:
+def handle_group_create(msg):
+    group_id = msg["GROUP_ID"]
+    group_name = msg["GROUP_NAME"]
+    members = parse_csv(msg["MEMBERS"])
+    group_map[group_id] = {
+        "name": group_name,
+        "members": members
+    }
+
+    if local_profile["USER_ID"] in members:
+        print(f"You have been added to {group_name}")
+
+def handle_group_update(msg):
+    group_id = msg["GROUP_ID"]
+    if group_id not in group_map:
+        print("⚠️ Group not found")
+        return
+
+    adds = parse_csv(msg.get("ADD", ""))
+    removes = parse_csv(msg.get("REMOVE", ""))
+
+    for user in adds:
+        if user not in group_map[group_id]["members"]:
+            group_map[group_id]["members"].append(user)
+    for user in removes:
+        if user in group_map[group_id]["members"]:
             group_map[group_id]["members"].remove(user)
-            print(f"👋 {user} left group {group_id}")
 
-# ========== CLI ==========
+    print(f'The group "{group_map[group_id]["name"]}" member list was updated.')
+
+def handle_group_message(msg, addr=None):
+    group_id = msg["GROUP_ID"]
+    if group_id not in group_map:
+        return
+
+    sender = msg["FROM"]
+    content = msg["CONTENT"]
+    print(f"{sender} sent “{content}”")
+
+def auto_generate_group_id():
+    return f"grp{random.randint(1000, 9999)}"
 
 def cli_group_create():
-    group_id = input("Enter new group name: ").strip()
-    if not group_id:
-        print("❌ Group name cannot be empty.")
-        return
+    group_name = input("Enter Group Name: ").strip()
+    members = input("Comma-separated user_ids (including yourself): ").strip()
 
-    msg = build_message({
+    group_id = auto_generate_group_id()
+    timestamp = current_unix_timestamp()
+    ttl = 3600
+    token = generate_token(local_profile["USER_ID"], timestamp, ttl, "group")
+
+    message = build_message({
         "TYPE": "GROUP_CREATE",
-        "GROUP": group_id,
-        "USER": local_profile.USER_ID,
-        "TIME": str(current_unix_timestamp())
+        "FROM": local_profile["USER_ID"],
+        "GROUP_ID": group_id,
+        "GROUP_NAME": group_name,
+        "MEMBERS": members,
+        "TIMESTAMP": timestamp,
+        "TOKEN": token,
+        "MESSAGE_ID": generate_message_id(),
     })
 
-    send_udp(msg)
-    print(f"✅ Group '{group_id}' created.")
+    send_udp(message, BROADCAST_ADDRESS)
 
-def cli_group_join():
-    group_id = input("Enter group name to join: ").strip()
+def cli_group_update():
+    group_name = input("Group Name to update: ").strip()
+    group_id = next((gid for gid, data in group_map.items() if data.get("name") == group_name and local_profile["USER_ID"] in data.get("members", [])), None)
     if not group_id:
-        print("❌ Group name required.")
+        print("⚠️ You are not a member of this group.")
         return
 
-    msg = build_message({
-        "TYPE": "GROUP_JOIN",
-        "GROUP": group_id,
-        "USER": local_profile.USER_ID,
-        "TIME": str(current_unix_timestamp())
+    add = input("User(s) to add (comma-separated): ").strip()
+    remove = input("User(s) to remove (comma-separated): ").strip()
+    timestamp = current_unix_timestamp()
+    ttl = 3600
+    token = generate_token(local_profile["USER_ID"], timestamp, ttl, "group")
+
+    message = build_message({
+        "TYPE": "GROUP_UPDATE",
+        "FROM": local_profile["USER_ID"],
+        "GROUP_ID": group_id,
+        "ADD": add,
+        "REMOVE": remove,
+        "TIMESTAMP": timestamp,
+        "TOKEN": token,
+        "MESSAGE_ID": generate_message_id(),
     })
 
-    send_udp(msg)
-    print(f"✅ Join request for group '{group_id}' sent.")
+    send_udp(message, BROADCAST_ADDRESS)
 
 def cli_group_msg():
-    group_id = input("Group name: ").strip()
-    if group_id not in group_map or local_profile.USER_ID not in group_map[group_id]["members"]:
-        print("❌ You are not a member of this group.")
+    group_name = input("Group Name to message: ").strip()
+    group_id = next((gid for gid, data in group_map.items() if data.get("name") == group_name and local_profile["USER_ID"] in data.get("members", [])), None)
+    if not group_id:
+        print("⚠️ You are not a member of this group.")
         return
 
     content = input("Message: ").strip()
-    if not content:
-        print("❌ Message cannot be empty.")
+    timestamp = current_unix_timestamp()
+    ttl = 3600
+    token = generate_token(local_profile["USER_ID"], timestamp, ttl, "group")
+
+    members = group_map[group_id].get("members", [])
+    for user_id in members:
+        if user_id == local_profile["USER_ID"]:
+            continue
+
+        addr = peers.get(user_id, {}).get("ADDRESS")
+        if addr:
+            message = build_message({
+                "TYPE": "GROUP_MESSAGE",
+                "FROM": local_profile["USER_ID"],
+                "GROUP_ID": group_id,
+                "CONTENT": content,
+                "TIMESTAMP": timestamp,
+                "TOKEN": token,
+                "MESSAGE_ID": generate_message_id(),
+            })
+            send_unicast(message, addr)
+
+def cli_group_list():
+    print("\nGroups you belong to:")
+    for group_id, data in group_map.items():
+        if local_profile["USER_ID"] in data.get("members", []):
+            print(f"- {group_id} ({data['name']})")
+
+def cli_group_members():
+    group_name = input("Group Name: ").strip()
+    group_id = next((gid for gid, data in group_map.items() if data.get("name") == group_name and local_profile["USER_ID"] in data.get("members", [])), None)
+
+    if not group_id:
+        print("⚠️ Group not found or you are not a member.")
         return
-
-    msg = build_message({
-        "TYPE": "GROUP_MSG",
-        "GROUP": group_id,
-        "USER": local_profile.USER_ID,
-        "TIME": str(current_unix_timestamp()),
-        "CONTENT": content
-    })
-
-    # Optionally multicast to all known peers
-    for peer_id, peer_ip in peers.items():
-        send_unicast(msg, peer_ip)
-
-    print("✅ Group message sent.")
-
-def cli_group_leave():
-    group_id = input("Group to leave: ").strip()
-    if group_id not in group_map:
-        print("❌ Group not found.")
-        return
-
-    msg = build_message({
-        "TYPE": "GROUP_LEAVE",
-        "GROUP": group_id,
-        "USER": local_profile.USER_ID,
-        "TIME": str(current_unix_timestamp())
-    })
-
-    send_udp(msg)
-    print(f"👋 Leave message sent for group '{group_id}'.")
+    print(f"\nMembers of {group_id} ({group_map[group_id]['name']}):")
+    for member in group_map[group_id]["members"]:
+        print(f"- {member}")

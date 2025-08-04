@@ -46,23 +46,25 @@ def validate_token(token: str, expected_scope: str) -> bool:
     if len(parts) != 3:
         return False
 
-    user_id, expiration, scope = parts
-
-    # print(f"[{user_id}]\nNow: {int(time.time())}\nExp: {expiration}\nScope: {scope}")
+    user_id, expiration_expr, scope = parts
 
     try:
-        expiration = int(expiration)
+        if '+' in expiration_expr:
+            timestamp_str, ttl_str = expiration_expr.split('+')
+            expiration = int(timestamp_str)
+            ttl = int(ttl_str)
+            expiration = expiration  # Already a timestamp, so nothing to add
+        else:
+            expiration = int(expiration_expr)
     except ValueError:
-        print(ValueError)
         return False
 
     current_time = int(time.time())
     if current_time > expiration:
-        print(current_time, " > ", expiration)
         return False
 
     if scope.strip().lower() != expected_scope.lower():
-        print(scope.strip().lower(), '!=', expected_scope)
         return False
 
     return True
+
