@@ -24,7 +24,10 @@ def handle(msg: dict, addr: tuple):
             "players": [sender, local_profile["USER_ID"]],
             "board": [" "] * 9,
             "turn": sender,
-            "symbol": {sender: symbol, local_profile["USER_ID"]: "O" if symbol == "X" else "X"},
+            "symbol": {
+                sender: symbol,
+                local_profile["USER_ID"]: "O" if symbol == "X" else "X"
+            },
             "moves": set()
         }
         send_ack(message_id, addr)
@@ -51,7 +54,7 @@ def handle(msg: dict, addr: tuple):
                 if result:
                     send_result(game_id, sender, result, line, symbol)
             else:
-                print(f"⚠️ Invalid move from {sender}")
+                print(f"⚠ Invalid move from {sender}")
         else:
             print(f"❌ Unknown game {game_id}")
 
@@ -59,13 +62,12 @@ def handle(msg: dict, addr: tuple):
         result = msg.get("RESULT")
         symbol = msg.get("SYMBOL")
         line = msg.get("WINNING_LINE")
-        print("Game Over:", result, "by", symbol)
+        print("🎯 Game Over:", result, "by", symbol)
         display_board(games[game_id]["board"] if game_id in games else [" "] * 9)
         if game_id in games:
             del games[game_id]
 
-
-# -Helper-
+# ----- Helpers -----
 
 def send_ack(message_id, addr):
     ack_msg = {
@@ -73,8 +75,7 @@ def send_ack(message_id, addr):
         "MESSAGE_ID": message_id,
         "STATUS": "RECEIVED"
     }
-    send_unicast(build_message(ack_msg), addr)
-
+    send_unicast(build_message(ack_msg), addr[0], addr[1])
 
 def check_winner(board):
     lines = [(0,1,2),(3,4,5),(6,7,8),
@@ -87,7 +88,6 @@ def check_winner(board):
         return "DRAW", None
     return None, None
 
-
 def display_board(board):
     print("\nTic Tac Toe:")
     for i in range(0, 9, 3):
@@ -96,8 +96,7 @@ def display_board(board):
             print("---------")
     print("")
 
-
-# -CLI FUnctions
+# ----- CLI -----
 
 def cli_game_invite():
     target_id = input("Opponent USER_ID: ").strip()
@@ -126,10 +125,12 @@ def cli_game_invite():
         "players": [local_profile["USER_ID"], target_id],
         "board": [" "] * 9,
         "turn": local_profile["USER_ID"],
-        "symbol": {local_profile["USER_ID"]: "X", target_id: "O"},
+        "symbol": {
+            local_profile["USER_ID"]: "X",
+            target_id: "O"
+        },
         "moves": set()
     }
-
 
 def cli_game_move():
     game_id = input("Game ID: ").strip()
@@ -150,7 +151,7 @@ def cli_game_move():
 
     symbol = game["symbol"][local_profile["USER_ID"]]
     game["board"][position] = symbol
-    game["turn"] = game["players"][0] if local_profile["USER_ID"] == game["players"][1] else game["players"][1]
+    game["turn"] = next(p for p in game["players"] if p != local_profile["USER_ID"])
     display_board(game["board"])
 
     msg_id = generate_message_id()
@@ -172,15 +173,13 @@ def cli_game_move():
     if result:
         send_result(game_id, game["turn"], result, line, symbol)
 
-
 def cli_game_quit():
     game_id = input("Game ID to quit: ").strip()
     if game_id not in games:
         print("❌ Game not found.")
         return
 
-    opponent = [p for p in games[game_id]["players"] if p != local_profile["USER_ID"]][0]
-
+    opponent = next(p for p in games[game_id]["players"] if p != local_profile["USER_ID"])
     msg = {
         "TYPE": "TICTACTOE_RESULT",
         "FROM": local_profile["USER_ID"],
@@ -192,11 +191,10 @@ def cli_game_quit():
         "WINNING_LINE": "",
         "TIMESTAMP": str(current_unix_timestamp())
     }
-    send_unicast(build_message(msg), peers[opponent])
 
+    send_unicast(build_message(msg), peers[opponent]["ADDRESS"])
     del games[game_id]
     print(f"🚪 You quit game {game_id} (forfeit).")
-
 
 def send_result(game_id, target, result, line, symbol):
     msg = {
@@ -210,13 +208,12 @@ def send_result(game_id, target, result, line, symbol):
         "WINNING_LINE": ",".join(map(str, line)) if line else "",
         "TIMESTAMP": str(current_unix_timestamp())
     }
-    send_unicast(build_message(msg), peers[target])
+    send_unicast(build_message(msg), peers[target]["ADDRESS"])
 
-
-# -Retry-
+# ----- Retry Logic -----
 
 def retry_send(msg_str, target_id, msg_id):
-    addr = peers[target_id]
+    addr = peers[target_id]["ADDRESS"]
     ack_pending[msg_id] = {"msg": msg_str, "addr": addr, "retries": 0}
 
     for _ in range(3):
@@ -227,5 +224,5 @@ def retry_send(msg_str, target_id, msg_id):
         ack_pending[msg_id]["retries"] += 1
 
     if msg_id in ack_pending:
-        print(f"⚠️ No ACK received for {msg_id} after 3 retries.")
+        print(f"⚠ No ACK received for {msg_id} after 3 retries.")
         del ack_pending[msg_id]
