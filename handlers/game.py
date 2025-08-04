@@ -13,11 +13,11 @@ game_state = {
 
 def handle(msg, addr):
     msg_type = msg.get("TYPE")
-    if msg_type == "GAME_INVITE":
+    if msg_type == "TICTACTOE_INVITE":
         handle_invite(msg, addr)
-    elif msg_type == "GAME_MOVE":
+    elif msg_type == "TICTACTOE_MOVE":
         handle_move(msg, addr)
-    elif msg_type == "GAME_RESULT":
+    elif msg_type == "TICTACTOE_RESULT":
         handle_result(msg, addr)
 
 
@@ -80,7 +80,7 @@ def send_result(result_str):
     if not game_state["opponent"]:
         return
     msg = {
-        "TYPE": "GAME_RESULT",
+        "TYPE": "TICTACTOE_RESULT",
         "FROM": local_profile["USER_ID"],
         "TO": game_state["opponent"],
         "RESULT": result_str,
@@ -101,7 +101,7 @@ def cli_game_invite():
     token = generate_token(local_profile["USER_ID"], ttl=3600, scope="game")
 
     msg = {
-        "TYPE": "GAME_INVITE",
+        "TYPE": "TICTACTOE_INVITE",
         "FROM": local_profile["USER_ID"],
         "TO": to_id,
         "TIMESTAMP": str(current_unix_timestamp()),
@@ -143,7 +143,7 @@ def cli_game_move():
         return
 
     msg = {
-        "TYPE": "GAME_MOVE",
+        "TYPE": "TICTACTOE_MOVE",
         "FROM": local_profile["USER_ID"],
         "TO": to_id,
         "MOVE": str(move),
