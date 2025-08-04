@@ -1,11 +1,9 @@
-# handlers/game.py
-
 from utils import generate_token, current_unix_timestamp
 from socket_handler import send_udp
 from state import local_profile, peers
 from message import build_message
 
-# --- Game State (simple in-memory store) ---
+# --- Game State ---
 game_state = {
     "opponent": None,
     "board": [" "] * 9,
@@ -35,7 +33,7 @@ def handle_invite(msg, addr):
     display = peers.get(from_id, {}).get("DISPLAY_NAME", from_id)
     print(f"\n🎮 {display} has invited you to play Tic Tac Toe.")
     choice = input("Accept? (y/n): ").strip().lower()
-    
+
     if choice == "y":
         game_state["opponent"] = from_id
         game_state["board"] = [" "] * 9
@@ -50,7 +48,7 @@ def handle_move(msg, addr):
     move_index = int(msg.get("MOVE", -1))
 
     if game_state["opponent"] != from_id:
-        return  # ignore move from unrelated peer
+        return  # Ignore move from unrelated peer
 
     if move_index < 0 or move_index > 8:
         print("⚠️ Invalid move received.")
@@ -64,7 +62,7 @@ def handle_move(msg, addr):
     print_board()
 
     if check_winner("X"):
-        send_result("LOSS")  # opponent won
+        send_result("LOSS")  # Opponent won
         print("💥 You lost!")
         reset_game()
 
@@ -88,12 +86,19 @@ def send_result(result_str):
         "RESULT": result_str,
         "TIMESTAMP": str(current_unix_timestamp()),
     }
-    send_udp(build_message(msg), local_profile["LOCAL_IP"])
+    peer = peers.get(game_state["opponent"])
+    if peer:
+        send_udp(build_message(msg), peer["ADDRESS"])
 
 
 def cli_game_invite():
     to_id = input("Send invite to USER_ID: ").strip()
-    token = generate_token(local_profile["USER_ID"], scope="game")
+    peer = peers.get(to_id)
+    if not peer:
+        print("❌ Peer not found.")
+        return
+
+    token = generate_token(local_profile["USER_ID"], ttl=3600, scope="game")
 
     msg = {
         "TYPE": "GAME_INVITE",
@@ -103,7 +108,7 @@ def cli_game_invite():
         "TOKEN": token,
     }
 
-    send_udp(build_message(msg), local_profile["LOCAL_IP"])
+    send_udp(build_message(msg), peer["ADDRESS"])
     game_state["opponent"] = to_id
     game_state["board"] = [" "] * 9
     game_state["my_turn"] = True
@@ -131,14 +136,21 @@ def cli_game_move():
     game_state["board"][move] = "O"
     game_state["my_turn"] = False
 
+    to_id = game_state["opponent"]
+    peer = peers.get(to_id)
+    if not peer:
+        print("❌ Peer not found.")
+        return
+
     msg = {
         "TYPE": "GAME_MOVE",
         "FROM": local_profile["USER_ID"],
-        "TO": game_state["opponent"],
+        "TO": to_id,
         "MOVE": str(move),
         "TIMESTAMP": str(current_unix_timestamp()),
     }
-    send_udp(build_message(msg), local_profile["LOCAL_IP"])
+
+    send_udp(build_message(msg), peer["ADDRESS"])
     print("✅ Move sent.")
     print_board()
 
@@ -174,7 +186,7 @@ def check_winner(symbol):
     b = game_state["board"]
     win_positions = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # cols
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
         [0, 4, 8], [2, 4, 6]              # diagonals
     ]
     return any(all(b[i] == symbol for i in line) for line in win_positions)
