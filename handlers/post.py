@@ -133,7 +133,7 @@ def handle_post(msg: dict):
             print(f"{YELLOW}⚠️ Invalid TIMESTAMP format.{RESET}")
         return
 
-    posts[message_id] = {
+    posts[timestamp] = {
         "USER_ID": user,
         "CONTENT": content,
         "TTL": int(ttl),
