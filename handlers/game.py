@@ -10,16 +10,37 @@ game_state = {
     "my_turn": False,
 }
 
+#For ACK
+ack_pending = {}
+
+def send_ack(msg_id, addr):
+    ack = {
+        "TYPE": "ACK",
+        "MESSAGE_ID": msg_id,
+        "STATUS": "RECEIVED"
+    }
+    send_udp(build_message(ack), addr[0])
+
 
 def handle(msg, addr):
     msg_type = msg.get("TYPE")
+
+    if msg_type == "ACK":
+        msg_id = msg.get("MESSAGE_ID")
+        if msg_id in ack_pending:
+            del ack_pending[msg_id]
+        return
+
     if msg_type == "TICTACTOE_INVITE":
+        send_ack(msg.get("MESSAGE_ID"), addr)
         handle_invite(msg, addr)
     elif msg_type == "TICTACTOE_MOVE":
+        send_ack(msg.get("MESSAGE_ID"), addr)
         handle_move(msg, addr)
     elif msg_type == "TICTACTOE_RESULT":
+        send_ack(msg.get("MESSAGE_ID"), addr)
         handle_result(msg, addr)
-
+        
 
 def handle_invite(msg, addr):
     from_id = msg.get("FROM")
