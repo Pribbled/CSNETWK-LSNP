@@ -1,6 +1,6 @@
 from message import build_message
 from socket_handler import send_udp
-from config import BROADCAST_ADDRESS
+from config import BROADCAST_ADDRESS, PORT
 from state import revoked_tokens, tokens, local_profile
 
 def handle(msg: dict, addr: tuple):
@@ -18,7 +18,7 @@ def send_revoke(token: str):
     })
 
     # Send it to the broadcast address
-    send_udp(message_str, BROADCAST_ADDRESS)
+    send_udp(message_str, BROADCAST_ADDRESS, PORT)
 
     # Mark as revoked locally
     revoked_tokens.add(token)

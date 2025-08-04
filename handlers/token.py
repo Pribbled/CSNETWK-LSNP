@@ -3,6 +3,7 @@ from message import build_message
 from socket_handler import send_unicast, send_udp
 from utils import generate_message_id, current_unix_timestamp
 from state import tokens, revoked_tokens, peers, local_profile
+from config import BROADCAST_ADDRESS, PORT
 
 # Constants
 DEFAULT_SCOPE = "POST,DM,FILE"
@@ -61,7 +62,7 @@ def send_revoke_for_all_tokens(sock):
     for token in list(tokens.keys()):
         if token.startswith(user_id):
             revoke_msg = f"TYPE: REVOKE\nTOKEN: {token}"
-            send_udp(sock, revoke_msg)
+            send_udp(revoke_msg, BROADCAST_ADDRESS, PORT)
             del tokens[token]  # Remove locally too
 
 def revoke_token(token: str):
@@ -69,4 +70,4 @@ def revoke_token(token: str):
         "TYPE": "REVOKE",
         "TOKEN": token
     })
-    send_udp(msg)
+    send_udp(msg, BROADCAST_ADDRESS, PORT)
