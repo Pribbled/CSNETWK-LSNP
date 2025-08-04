@@ -46,21 +46,21 @@ def validate_token(token: str, expected_scope: str) -> bool:
     if len(parts) != 3:
         return False
 
-    user_id, expiration_expr, scope = parts
+    user_id, expiration, scope = parts
 
-    try:
-        if '+' in expiration_expr:
-            timestamp_str, ttl_str = expiration_expr.split('+')
-            expiration = int(timestamp_str)
-            ttl = int(ttl_str)
-            expiration = expiration  # Already a timestamp, so nothing to add
-        else:
-            expiration = int(expiration_expr)
-    except ValueError:
-        return False
+    # try:
+    #     if '+' in expiration_expr:
+    #         timestamp_str, ttl_str = expiration_expr.split('+')
+    #         expiration = int(timestamp_str)
+    #         ttl = int(ttl_str)
+    #         expiration = expiration  # Already a timestamp, so nothing to add
+    #     else:
+    #         expiration = int(expiration_expr)
+    # except ValueError:
+    #     return False
 
     current_time = int(time.time())
-    if current_time > expiration:
+    if current_time > int(expiration):
         return False
 
     if scope.strip().lower() != expected_scope.lower():

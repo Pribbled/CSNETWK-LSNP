@@ -95,9 +95,9 @@ def receive_loop():
     while True:
         try:
             data, addr = receive_udp(sock)
-            print("\n============== Raw Incoming ===============\n", data)
+            if settings["VERBOSE"] : print("\n============== Raw Incoming ===============\n", data)
             msg = parse_message(data)
-            print("============== Parsed Message ==============\n", msg)
+            if settings["VERBOSE"] : print("============== Parsed Message ==============\n", msg)
             dispatch_message(msg, addr, sock)
         except Exception as e:
             if settings["VERBOSE"]:

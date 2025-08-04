@@ -15,7 +15,7 @@ def send_ack(to_user_id, original_message_id):
     addr = peers.get(to_user_id, {}).get("ADDRESS")
     if not addr:
         if settings["VERBOSE"]:
-            print(f"ACK: Could not find address for user {to_user_id}")
+            print(f"⚠️: Could not find address for user {to_user_id}")
         return
 
     ack_payload = {
@@ -29,7 +29,7 @@ def send_ack(to_user_id, original_message_id):
     _sent_acks.add(original_message_id)
 
     if settings["VERBOSE"]:
-        print(f"ACK: Sent ACK for message {original_message_id} to {to_user_id}")
+        print(f"📨: Sent ACK for message {original_message_id} to {to_user_id}")
 
 # ===== Handle received ACKs =====
 def handle(msg: dict, addr: tuple):
@@ -54,6 +54,7 @@ def handle(msg: dict, addr: tuple):
             break
 
     if settings["VERBOSE"]:
-        print(f"Received ACK from {sender_id or from_ip} for message {message_id}, status: {status}")
+        print(f"📫: Received ACK from {sender_id or from_ip} for message {message_id}, status: {status}")
     else:
-        print(f"{GREEN}✅ Message {message_id} was acknowledged by {sender_id or from_ip}.{RESET}")
+        # print(f"{GREEN}✅ Message {message_id} was acknowledged by {sender_id or from_ip}.{RESET}")
+        pass

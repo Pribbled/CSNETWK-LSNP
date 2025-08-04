@@ -47,9 +47,10 @@ def handle(msg: dict, addr: tuple):
 
     # ✅ Print DM
     if settings["VERBOSE"]:
+        print(f"\n{CYAN}{msg}{RESET}\n")
         print(f"\n{CYAN}💬 DM received from {sender} to {recipient}:{RESET} {content}")
     else:
-        print(f"{CYAN}{display_name}:{RESET} {content}")
+        print(f"{CYAN}{display_name}:{RESET} {content}\n")
 
     dm_history.append({
         "FROM": sender,

@@ -152,7 +152,7 @@ def handle_post(msg: dict):
         print(f"{CYAN}TTL:{RESET} {ttl}")
         print(f"{CYAN}MESSAGE_ID:{RESET} {message_id}")
         print(f"{CYAN}TOKEN:{RESET} {token}")
-        print(f"{CYAN}TIMESTAMP (injected):{RESET} {timestamp}")
+        print(f"{CYAN}TIMESTAMP:{RESET} {timestamp}")
     else:
         display = f"{name}: {content}"
         print(f"{avatar} {display}" if avatar else display)
