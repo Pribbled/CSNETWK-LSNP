@@ -167,6 +167,38 @@ def cli_group_list():
         if local_profile["USER_ID"] in data.get("members", []):
             print(f"- {group_id} ({data['name']})")
 
+def cli_group_leave():
+    group_name = input("Group Name to leave: ").strip()
+    group_id = next((gid for gid, data in group_map.items() if data.get("name") == group_name and local_profile["USER_ID"] in data.get("members", [])), None)
+
+    if not group_id:
+        print("⚠️ You are not a member of this group.")
+        return
+
+    timestamp = current_unix_timestamp()
+    ttl = 3600
+    token = generate_token(local_profile["USER_ID"], "group", ttl, timestamp)
+
+    message = build_message({
+        "TYPE": "GROUP_UPDATE",
+        "FROM": local_profile["USER_ID"],
+        "GROUP_ID": group_id,
+        "REMOVE": local_profile["USER_ID"],
+        "TIMESTAMP": timestamp,
+        "TOKEN": token,
+        "MESSAGE_ID": generate_message_id(),
+    })
+
+    for user_id in group_map[group_id]["members"]:
+        if user_id == local_profile["USER_ID"]:
+            continue
+        addr = peers.get(user_id, {}).get("ADDRESS")
+        if addr:
+            send_unicast(message, addr)
+
+    group_map[group_id]["members"].remove(local_profile["USER_ID"])
+    print(f"🚪 You have left the group '{group_map[group_id]['name']}'")
+
 def cli_group_members():
     group_name = input("Group Name: ").strip()
     group_id = next((gid for gid, data in group_map.items() if data.get("name") == group_name and local_profile["USER_ID"] in data.get("members", [])), None)
