@@ -8,6 +8,7 @@ from socket_handler import send_unicast
 from config import settings
 from file_transfer.sender import start_sending_chunks
 from file_transfer.file_session import get_session, remove_session
+from handlers import ack
 
 
 RECEIVED_DIR = "downloads"
@@ -66,6 +67,9 @@ def handle_file_offer(message: dict):
         }
 
     send_unicast(build_message(response), sender_ip)
+    if message.get("MESSAGE_ID"):
+        ack.send_ack(sender, message["MESSAGE_ID"])
+
 
 
 def handle_file_chunk(message: dict):
@@ -120,6 +124,9 @@ def handle_file_chunk(message: dict):
 
         print(f"✅ File received and saved to: {filepath}")
         send_file_received(sender, file_id)
+        if message.get("MESSAGE_ID"):
+            ack.send_ack(sender, message["MESSAGE_ID"])
+
 
 def handle_file_received(message: dict, verbose=False):
     # do nothing unless in verbose mode
