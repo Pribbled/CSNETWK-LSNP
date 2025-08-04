@@ -112,7 +112,7 @@ def cli_loop():
                 try:
                     sock = create_socket()
                     # revoke_token(sock)
-                    token.revoke_all_tokens_by_user(sock)
+                    revoke.revoke_all_tokens_by_user()
                 except Exception as e:
                     print(f"⚠️  Error sending REVOKE: {e}")
                 break
@@ -214,7 +214,7 @@ Available Commands:
         except KeyboardInterrupt:
             try:
                 sock = create_socket()
-                revoke_all_tokens_by_user(sock)
+                revoke.revoke_all_tokens_by_user()
             except Exception as e:
                 print(f"⚠️  Error sending REVOKE: {e}")
             break
