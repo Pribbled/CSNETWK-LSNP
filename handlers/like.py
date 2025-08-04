@@ -75,7 +75,7 @@ def cli_send():
     sender = local_profile["USER_ID"]
     timestamp = current_unix_timestamp()
     ttl = 3600
-    token = generate_token(sender, timestamp, ttl, "broadcast")
+    token = generate_token(sender, "broadcast", ttl, timestamp)
     
     if token in revoked_tokens:
         if settings["VERBOSE"]:

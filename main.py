@@ -67,6 +67,14 @@ def dispatch_message(msg: dict, addr: tuple, sock):
         group.handle(msg, addr)
     elif msg_type.startswith("GAME"):
         game.handle(msg, addr)
+    elif msg_type == "GAME_INVITE":
+        game.handle_invite(msg, addr)
+    elif msg_type == "GAME_MOVE":
+        game.handle_move(msg, addr)
+    elif msg_type == "GAME_RESULT":
+        game.handle_result(msg, addr)
+    # elif msg_type == "GAME_QUIT":
+    #     handle_game_quit(msg, addr)
     elif msg_type == "TOKEN":
         token.handle(msg, addr)
     elif msg_type == "REVOKE":
@@ -115,7 +123,7 @@ Available Commands:
 - follow      Follow a user
 - file        Send a FILE_OFFER
 - group       Manage groups (create, join, leave)
-- game        Send a GAME_MOVE or GAME_INVITE
+- game        Play Tic Tac Toe (invite, move, quit)
 - revoke      Revoke a token
 - unfollow    Unfollow a user
 - verbose     Toggle verbose mode
@@ -144,7 +152,21 @@ Available Commands:
             elif cmd == "group-leave":
                 group.cli_group_leave()
             elif cmd == "game":
-                game.cli_send()
+                print("""
+                Game commands:
+                - invite   Invite someone to Tic Tac Toe
+                - move     Play a Tic Tac Toe move
+                - quit     Quit a Tic Tac Toe game
+                    """)
+                sub_cmd = input("game> ").strip()
+                if sub_cmd == "invite":
+                    game.cli_game_invite()
+                elif sub_cmd == "move":
+                    game.cli_game_move()
+                elif sub_cmd == "quit":
+                    game.cli_game_quit()
+                else:
+                    print("❓ Unknown game command. Options: invite, move, quit")
             elif cmd == "game-invite":
                 game.cli_game_invite()
             elif cmd == "game-move":

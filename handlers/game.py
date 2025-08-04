@@ -1,125 +1,192 @@
+from utils import generate_token, current_unix_timestamp
+from socket_handler import send_udp
+from state import local_profile, peers
 from message import build_message
-from socket_handler import send_unicast
-from state import local_profile, games, peers
-from utils import generate_message_id, current_unix_timestamp
 
-def handle(msg: dict, addr: tuple):
-    msg_type = msg.get("TYPE", "").upper()
-    sender = msg.get("FROM")
-    target = msg.get("TO")
-    game_id = msg.get("GAME")
-    move = msg.get("MOVE")
-    time = msg.get("TIME")
+# --- Game State ---
+game_state = {
+    "opponent": None,
+    "board": [" "] * 9,
+    "my_turn": False,
+}
 
-    if msg_type == "GAME_INVITE":
-        print(f"🎮 Game invite from {sender} (Game ID: {game_id})")
-        games[game_id] = {
-            "players": [sender, local_profile.USER_ID],
-            "board": [" "] * 9,
-            "turn": sender,
-        }
 
-    elif msg_type == "GAME_MOVE":
-        idx = int(move)
-        if game_id in games:
-            game = games[game_id]
-            if game["board"][idx] == " ":
-                game["board"][idx] = "X" if sender == game["players"][0] else "O"
-                game["turn"] = local_profile.USER_ID  # switch turn
-                display_board(game["board"])
-            else:
-                print(f"⚠️ Invalid move from {sender} (position {idx} already taken)")
+def handle(msg, addr):
+    msg_type = msg.get("TYPE")
+    if msg_type == "TICTACTOE_INVITE":
+        handle_invite(msg, addr)
+    elif msg_type == "TICTACTOE_MOVE":
+        handle_move(msg, addr)
+    elif msg_type == "TICTACTOE_RESULT":
+        handle_result(msg, addr)
 
-    elif msg_type == "GAME_QUIT":
-        if game_id in games:
-            print(f"🚪 {sender} has quit game {game_id}")
-            del games[game_id]
 
-def display_board(board):
-    print("\nTic Tac Toe:")
-    for i in range(0, 9, 3):
-        print(" | ".join(board[i:i+3]))
-        if i < 6:
-            print("---------")
-    print("")
+def handle_invite(msg, addr):
+    from_id = msg.get("FROM")
+    to_id = msg.get("TO")
+    token = msg.get("TOKEN")
+    timestamp = msg.get("TIMESTAMP")
 
-# ========== CLI ==========
+    if to_id != local_profile["USER_ID"]:
+        return  # Not for us
+
+    display = peers.get(from_id, {}).get("DISPLAY_NAME", from_id)
+    print(f"\n🎮 {display} has invited you to play Tic Tac Toe.")
+    choice = input("Accept? (y/n): ").strip().lower()
+
+    if choice == "y":
+        game_state["opponent"] = from_id
+        game_state["board"] = [" "] * 9
+        game_state["my_turn"] = False  # inviter goes first
+        print("✅ Game accepted. Waiting for opponent’s move.")
+    else:
+        print("❌ Game invite rejected.")
+
+
+def handle_move(msg, addr):
+    from_id = msg.get("FROM")
+    move_index = int(msg.get("MOVE", -1))
+
+    if game_state["opponent"] != from_id:
+        return  # Ignore move from unrelated peer
+
+    if move_index < 0 or move_index > 8:
+        print("⚠️ Invalid move received.")
+        return
+
+    game_state["board"][move_index] = "X"
+    game_state["my_turn"] = True
+
+    display = peers.get(from_id, {}).get("DISPLAY_NAME", from_id)
+    print(f"\n🎮 {display} made a move.")
+    print_board()
+
+    if check_winner("X"):
+        send_result("LOSS")  # Opponent won
+        print("💥 You lost!")
+        reset_game()
+
+
+def handle_result(msg, addr):
+    result = msg.get("RESULT", "UNKNOWN")
+    from_id = msg.get("FROM")
+    display = peers.get(from_id, {}).get("DISPLAY_NAME", from_id)
+
+    print(f"\n🏁 Game Over — {display} reports: {result}")
+    reset_game()
+
+
+def send_result(result_str):
+    if not game_state["opponent"]:
+        return
+    msg = {
+        "TYPE": "TICTACTOE_RESULT",
+        "FROM": local_profile["USER_ID"],
+        "TO": game_state["opponent"],
+        "RESULT": result_str,
+        "TIMESTAMP": str(current_unix_timestamp()),
+    }
+    peer = peers.get(game_state["opponent"])
+    if peer:
+        send_udp(build_message(msg), peer["ADDRESS"])
+
 
 def cli_game_invite():
-    target_id = input("Opponent USER_ID: ").strip()
-    if target_id not in peers:
-        print("❌ Unknown user.")
+    to_id = input("Send invite to USER_ID: ").strip()
+    peer = peers.get(to_id)
+    if not peer:
+        print("❌ Peer not found.")
         return
 
-    game_id = generate_message_id()
-    msg = build_message({
-        "TYPE": "GAME_INVITE",
-        "FROM": local_profile.USER_ID,
-        "TO": target_id,
-        "GAME": game_id,
-        "TIME": str(current_unix_timestamp())
-    })
+    token = generate_token(local_profile["USER_ID"], ttl=3600, scope="game")
 
-    send_unicast(msg, peers[target_id])
-    print(f"🎯 Invite sent to {target_id}. Game ID: {game_id}")
-
-    # Initialize local game state
-    games[game_id] = {
-        "players": [local_profile.USER_ID, target_id],
-        "board": [" "] * 9,
-        "turn": local_profile.USER_ID,
+    msg = {
+        "TYPE": "TICTACTOE_INVITE",
+        "FROM": local_profile["USER_ID"],
+        "TO": to_id,
+        "TIMESTAMP": str(current_unix_timestamp()),
+        "TOKEN": token,
     }
 
+    send_udp(build_message(msg), peer["ADDRESS"])
+    game_state["opponent"] = to_id
+    game_state["board"] = [" "] * 9
+    game_state["my_turn"] = True
+    print("📨 Invite sent. You go first!")
+
+
 def cli_game_move():
-    game_id = input("Game ID: ").strip()
-    if game_id not in games:
-        print("❌ Game not found.")
+    if not game_state["opponent"]:
+        print("❌ No active game.")
+        return
+    if not game_state["my_turn"]:
+        print("⏳ Wait for your turn.")
         return
 
-    game = games[game_id]
-    if game["turn"] != local_profile.USER_ID:
-        print("⏳ Not your turn.")
+    print_board()
+    try:
+        move = int(input("Enter your move (0–8): "))
+        if move < 0 or move > 8 or game_state["board"][move] != " ":
+            print("❌ Invalid move.")
+            return
+    except ValueError:
+        print("❌ Please enter a number between 0–8.")
         return
 
-    display_board(game["board"])
-    move = int(input("Your move (0–8): ").strip())
-    if move < 0 or move > 8 or game["board"][move] != " ":
-        print("❌ Invalid move.")
+    game_state["board"][move] = "O"
+    game_state["my_turn"] = False
+
+    to_id = game_state["opponent"]
+    peer = peers.get(to_id)
+    if not peer:
+        print("❌ Peer not found.")
         return
 
-    game["board"][move] = "X" if local_profile.USER_ID == game["players"][0] else "O"
-    game["turn"] = game["players"][1]  # switch turn
-    display_board(game["board"])
-
-    # Send move to opponent
-    opponent = game["players"][1]
-    msg = build_message({
-        "TYPE": "GAME_MOVE",
-        "FROM": local_profile.USER_ID,
-        "TO": opponent,
-        "GAME": game_id,
+    msg = {
+        "TYPE": "TICTACTOE_MOVE",
+        "FROM": local_profile["USER_ID"],
+        "TO": to_id,
         "MOVE": str(move),
-        "TIME": str(current_unix_timestamp())
-    })
+        "TIMESTAMP": str(current_unix_timestamp()),
+    }
 
-    send_unicast(msg, peers[opponent])
-    print(f"✅ Move sent.")
+    send_udp(build_message(msg), peer["ADDRESS"])
+    print("✅ Move sent.")
+    print_board()
+
+    if check_winner("O"):
+        send_result("WIN")
+        print("🏆 You win!")
+        reset_game()
+
 
 def cli_game_quit():
-    game_id = input("Game ID to quit: ").strip()
-    if game_id not in games:
-        print("❌ Game not found.")
-        return
+    print("👋 Quitting current game.")
+    reset_game()
 
-    opponent = games[game_id]["players"][1]
-    msg = build_message({
-        "TYPE": "GAME_QUIT",
-        "FROM": local_profile.USER_ID,
-        "TO": opponent,
-        "GAME": game_id,
-        "TIME": str(current_unix_timestamp())
-    })
 
-    send_unicast(msg, peers[opponent])
-    del games[game_id]
-    print(f"🚪 You quit the game.")
+def reset_game():
+    game_state["opponent"] = None
+    game_state["board"] = [" "] * 9
+    game_state["my_turn"] = False
+
+
+def print_board():
+    b = game_state["board"]
+    print(f"""
+     {b[0]} | {b[1]} | {b[2]} 
+    ---+---+---
+     {b[3]} | {b[4]} | {b[5]} 
+    ---+---+---
+     {b[6]} | {b[7]} | {b[8]} 
+    """)
+
+
+def check_winner(symbol):
+    b = game_state["board"]
+    win_positions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
+        [0, 4, 8], [2, 4, 6]              # diagonals
+    ]
+    return any(all(b[i] == symbol for i in line) for line in win_positions)
