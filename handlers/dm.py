@@ -102,7 +102,7 @@ def cli_send():
     from_user = local_profile["USER_ID"]
     timestamp = current_unix_timestamp()
     ttl = 3600
-    token = generate_token(from_user, timestamp, ttl, "chat")
+    token = generate_token(from_user, ttl, "chat", timestamp)
 
     msg = build_message({
         "TYPE": "DM",

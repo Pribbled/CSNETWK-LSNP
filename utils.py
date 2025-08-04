@@ -26,7 +26,7 @@ def current_unix_timestamp() -> int:
 def generate_message_id() -> str:
     return '%016x' % random.getrandbits(64)
 
-def generate_token(user_id: str, timestamp: int, ttl: int, scope: str) -> str:
+def generate_token(user_id: str, ttl: int, scope: str, timestamp: int = int(time.time())) -> str:
     return f"{user_id}|{str(timestamp)}+{str(ttl)}|{scope}"
 
 def generate_game_id() -> str:
