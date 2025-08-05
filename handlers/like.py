@@ -173,7 +173,7 @@ def handle_like(msg: dict):
     post = posts.get(post_timestamp)
     if not post:
         if settings["VERBOSE"]:
-            print(f"{YELLOW}⚠️ LIKE received for unknown post timestamp: {post_timestamp}{RESET}")
+            print(f"{YELLOW}💌 LIKE received for post timestamp: {post_timestamp}{RESET}")
         return
 
     if to_user != local_profile["USER_ID"]:
