@@ -29,10 +29,13 @@ def handle_file_offer(message: dict):
         print("❌ Cannot respond, sender IP unknown.")
         return
 
-    print(f"\n📦 Incoming File Offer from {sender}")
-    print(f"Filename: {filename}")
-    print(f"Size: {filesize} bytes")
-    print(f"Description: {description}")
+    if settings["VERBOSE"]:
+        print(f"\n📦 Incoming File Offer from {sender}")
+        print(f"Filename: {filename}")
+        print(f"Size: {filesize} bytes")
+        print(f"Description: {description}")
+    else:
+        print(f"User {sender} is sending you a file. (Enter to proceed)")
 
     # Prompt to accept or ignore
     choice = input("Do you want to accept the file? (y to accept / anything else to ignore): ").strip().lower()
@@ -112,7 +115,8 @@ def handle_file_chunk(message: dict):
         transfer["expected"] = total_chunks
 
     received = len(chunks)
-    print(f"📥 Received chunk {chunk_index}/{total_chunks} for {transfer.get('filename')}")
+    if settings["VERBOSE"]:
+        print(f"[VERBOSE] Received chunk {chunk_index + 1}/{total_chunks} for {transfer.get('filename')}")
 
     if received == total_chunks and all(i in chunks for i in range(total_chunks)):
         chunks_ordered = [chunks[i] for i in range(total_chunks)]
