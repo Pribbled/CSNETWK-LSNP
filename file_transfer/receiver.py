@@ -115,10 +115,10 @@ def handle_file_chunk(message: dict):
         transfer["expected"] = total_chunks
 
     received = len(chunks)
-    if settings["VERBOSE"]:
-        print(f"[VERBOSE] Received chunk {chunk_index + 1}/{total_chunks} for {transfer.get('filename')}")
+    print(f"[VERBOSE] Received chunk {chunk_index + 1}/{total_chunks} for {transfer.get('filename')}")
 
-    if received == total_chunks and all(i in chunks for i in range(total_chunks)):
+    #if received == total_chunks and all(i in chunks for i in range(total_chunks)):
+    if received == total_chunks:
         chunks_ordered = [chunks[i] for i in range(total_chunks)]
         filepath = os.path.join(os.getcwd(), "downloads", transfer["filename"])
 

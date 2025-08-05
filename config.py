@@ -1,6 +1,6 @@
 # Protocol Transport & Constants
 PORT = 50999
-BROADCAST_ADDRESS = '<broadcast>'
+BROADCAST_ADDRESS = '192.168.208.255'
 BUFFER_SIZE = 65535
 MAX_IMAGE_SIZE = 8192
 ENCODING = 'utf-8'
