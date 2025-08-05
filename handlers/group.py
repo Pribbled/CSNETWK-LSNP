@@ -8,9 +8,10 @@ from utils import (
     validate_token,
     generate_token,
 )
-from config import BROADCAST_ADDRESS, DEFAULT_TTL
+from config import BROADCAST_ADDRESS
 import random
 from handlers import ack
+from config import settings
 
 def handle(msg, addr):
     msg_type = msg.get("TYPE", "").upper()
@@ -43,7 +44,10 @@ def handle_group_create(msg):
     }
 
     if local_profile["USER_ID"] in members:
-        print(f"You have been added to {group_name}")
+        if settings["VERBOSE"]:
+            print(f"📩 You have been added by {msg['FROM']} to group \"{group_name}\" ({group_id})\nMembers: {members}")
+        else:
+            print(f"You have been added to {group_name}")
 
 def handle_group_update(msg):
     group_id = msg["GROUP_ID"]
@@ -61,7 +65,10 @@ def handle_group_update(msg):
         if user in group_map[group_id]["members"]:
             group_map[group_id]["members"].remove(user)
 
-    print(f'The group "{group_map[group_id]["name"]}" member list was updated.')
+    if settings["VERBOSE"]:
+        print(f"🔧 GROUP_UPDATE for {group_id} → +{adds} | -{removes}")
+    else:
+        print(f"The group \"{group_id}\" member list was updated.")
 
 def handle_group_message(msg, addr=None):
     group_id = msg["GROUP_ID"]
@@ -70,7 +77,10 @@ def handle_group_message(msg, addr=None):
 
     sender = msg["FROM"]
     content = msg["CONTENT"]
-    print(f"{sender} sent “{content}”")
+    if settings["VERBOSE"]:
+        print(f"📨 GROUP_MESSAGE from {sender} in {group_id} → {content}")
+    else:
+        print(f"{sender} sent “{content}”")
 
     if addr and "MESSAGE_ID" in msg:
         ack.send_ack(sender, msg["MESSAGE_ID"])
